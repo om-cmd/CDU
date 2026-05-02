@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Core Layer\Core Layer.csproj" />
     <ProjectReference Include="..\Domain Layer\Domain Layer.csproj" />
   </ItemGroup>
 
