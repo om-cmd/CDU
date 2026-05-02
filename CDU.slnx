@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Analysis Web/Analysis Web.csproj" />
+  <Project Path="Business Layer/Business Layer.csproj" />
+  <Project Path="Core Layer/Core Layer.csproj" />
+  <Project Path="Domain Layer/Domain Layer.csproj" />
+  <Project Path="Web API/Web API.csproj" />
+</Solution>
