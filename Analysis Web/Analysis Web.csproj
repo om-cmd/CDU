@@ -7,4 +7,8 @@
     <RootNamespace>Analysis_Web</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Domain Layer\Domain Layer.csproj" />
+  </ItemGroup>
+
 </Project>
