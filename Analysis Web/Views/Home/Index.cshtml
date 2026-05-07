@@ -1,8 +1,449 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Crime Analysis Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="row">
+    <!-- Stat Cards -->
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-header card-header-warning card-header-icon">
+                <div class="card-icon">
+                    <i class="material-icons">warning</i>
+                </div>
+                <p class="card-category">Total Incidents</p>
+                <h3 class="card-title">4,821</h3>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="material-icons text-danger">trending_up</i>
+                    <a href="#">↑ 6.2% vs last quarter</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-header card-header-rose card-header-icon">
+                <div class="card-icon">
+                    <i class="material-icons">folder_open</i>
+                </div>
+                <p class="card-category">Open Cases</p>
+                <h3 class="card-title">1,247</h3>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="material-icons text-danger">trending_up</i>
+                    <a href="#">↑ 3.1% unsolved rate</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-header card-header-success card-header-icon">
+                <div class="card-icon">
+                    <i class="material-icons">check_circle</i>
+                </div>
+                <p class="card-category">Clearance Rate</p>
+                <h3 class="card-title">74%</h3>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="material-icons text-success">trending_down</i>
+                    <a href="#">↓ 2.1% favourable</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 col-sm-6">
+        <div class="card card-stats">
+            <div class="card-header card-header-info card-header-icon">
+                <div class="card-icon">
+                    <i class="material-icons">timer</i>
+                </div>
+                <p class="card-category">Avg Response (min)</p>
+                <h3 class="card-title">8.4</h3>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="material-icons text-success">trending_down</i>
+                    <a href="#">↓ 1.2 improved</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<div class="row">
+    <!-- Crime Category Bar Chart -->
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header card-header-warning">
+                <h4 class="card-title">Incidents by Crime Category</h4>
+                <p class="card-category">Gold Coast Region · Q1 2025</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td style="width:100px">Theft</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-danger" style="width:78%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right" style="width:50px">1,891</td>
+                            </tr>
+                            <tr>
+                                <td>Assault</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-warning" style="width:52%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">1,264</td>
+                            </tr>
+                            <tr>
+                                <td>Burglary</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar" style="width:38%;background:#9c27b0"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">920</td>
+                            </tr>
+                            <tr>
+                                <td>Vandalism</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-info" style="width:24%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">582</td>
+                            </tr>
+                            <tr>
+                                <td>Drug-Related</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-success" style="width:14%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">164</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time of Day + Monthly Trend -->
+    <div class="col-lg-6 col-md-12">
+        <div class="card">
+            <div class="card-header card-header-rose">
+                <h4 class="card-title">Incidents by Time of Day</h4>
+                <p class="card-category">Q1 2025</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td style="width:110px">00:00–06:00</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-info" style="width:45%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right" style="width:40px">18%</td>
+                            </tr>
+                            <tr>
+                                <td>06:00–12:00</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-info" style="width:30%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">12%</td>
+                            </tr>
+                            <tr>
+                                <td>12:00–18:00</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-warning" style="width:60%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">29%</td>
+                            </tr>
+                            <tr>
+                                <td>18:00–00:00</td>
+                                <td>
+                                    <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                        <div class="progress-bar bg-danger" style="width:100%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-right">41%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <hr />
+
+                <h6 class="card-title" style="font-size:13px;color:#999;font-weight:400;margin-bottom:8px">Monthly Trend (Q1 2025)</h6>
+                <div id="sparkline" style="display:flex;align-items:flex-end;gap:4px;height:50px;padding:0 4px"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Donut / Distribution -->
+    <div class="col-lg-4 col-md-12">
+        <div class="card">
+            <div class="card-header card-header-success">
+                <h4 class="card-title">Crime Type Distribution</h4>
+                <p class="card-category">All precincts</p>
+            </div>
+            <div class="card-body" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+                <svg width="110" height="110" viewBox="0 0 110 110">
+                    <circle cx="55" cy="55" r="40" fill="none" stroke="#eee" stroke-width="16" />
+                    <circle cx="55" cy="55" r="40" fill="none" stroke="#e8593c" stroke-width="16"
+                            stroke-dasharray="78 173" stroke-dashoffset="0" transform="rotate(-90 55 55)" />
+                    <circle cx="55" cy="55" r="40" fill="none" stroke="#f2a623" stroke-width="16"
+                            stroke-dasharray="52 173" stroke-dashoffset="-78" transform="rotate(-90 55 55)" />
+                    <circle cx="55" cy="55" r="40" fill="none" stroke="#9c27b0" stroke-width="16"
+                            stroke-dasharray="38 173" stroke-dashoffset="-130" transform="rotate(-90 55 55)" />
+                    <circle cx="55" cy="55" r="40" fill="none" stroke="#26c6da" stroke-width="16"
+                            stroke-dasharray="25 173" stroke-dashoffset="-168" transform="rotate(-90 55 55)" />
+                    <text x="55" y="52" text-anchor="middle" fill="#333" font-size="13" font-weight="700">4,821</text>
+                    <text x="55" y="64" text-anchor="middle" fill="#999" font-size="9">total</text>
+                </svg>
+                <div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#e8593c;display:inline-block"></span> Theft — 39.2%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#f2a623;display:inline-block"></span> Assault — 26.2%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#9c27b0;display:inline-block"></span> Burglary — 19.1%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:12px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#26c6da;display:inline-block"></span> Vandalism — 12.1%
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:12px">
+                        <span style="width:10px;height:10px;border-radius:50%;background:#66bb6a;display:inline-block"></span> Drug-Related — 3.4%
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Priority Level Split -->
+    <div class="col-lg-4 col-md-12">
+        <div class="card">
+            <div class="card-header card-header-info">
+                <h4 class="card-title">Priority Level Split</h4>
+                <p class="card-category">All incident types</p>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <td>P1 Critical</td>
+                            <td>
+                                <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                    <div class="progress-bar bg-danger" style="width:22%"></div>
+                                </div>
+                            </td>
+                            <td class="text-right">8%</td>
+                        </tr>
+                        <tr>
+                            <td>P2 High</td>
+                            <td>
+                                <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                    <div class="progress-bar bg-warning" style="width:47%"></div>
+                                </div>
+                            </td>
+                            <td class="text-right">27%</td>
+                        </tr>
+                        <tr>
+                            <td>P3 Medium</td>
+                            <td>
+                                <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                    <div class="progress-bar bg-info" style="width:78%"></div>
+                                </div>
+                            </td>
+                            <td class="text-right">41%</td>
+                        </tr>
+                        <tr>
+                            <td>P4 Low</td>
+                            <td>
+                                <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
+                                    <div class="progress-bar bg-success" style="width:42%"></div>
+                                </div>
+                            </td>
+                            <td class="text-right">24%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hotspot Heatmap -->
+    <div class="col-lg-4 col-md-12">
+        <div class="card">
+            <div class="card-header card-header-danger">
+                <h4 class="card-title">Hotspot Map</h4>
+                <p class="card-category">Precinct Heatmap</p>
+            </div>
+            <div class="card-body" style="padding:10px">
+                <svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:4px">
+                    <rect width="400" height="140" fill="#f5f5f5" rx="4" />
+                    <g stroke="#ddd" stroke-width="0.5">
+                        <line x1="100" y1="0" x2="100" y2="140" />
+                        <line x1="200" y1="0" x2="200" y2="140" />
+                        <line x1="300" y1="0" x2="300" y2="140" />
+                    </g>
+                    <circle cx="65" cy="70" r="45" fill="rgba(232,89,60,0.18)" />
+                    <circle cx="65" cy="70" r="25" fill="rgba(232,89,60,0.35)" />
+                    <circle cx="65" cy="70" r="10" fill="rgba(232,89,60,0.65)" />
+
+                    <circle cx="170" cy="55" r="35" fill="rgba(242,166,35,0.18)" />
+                    <circle cx="170" cy="55" r="18" fill="rgba(242,166,35,0.35)" />
+                    <circle cx="170" cy="55" r="8" fill="rgba(242,166,35,0.6)" />
+
+                    <circle cx="265" cy="85" r="40" fill="rgba(232,89,60,0.15)" />
+                    <circle cx="265" cy="85" r="20" fill="rgba(232,89,60,0.3)" />
+                    <circle cx="265" cy="85" r="8" fill="rgba(232,89,60,0.55)" />
+
+                    <circle cx="355" cy="45" r="28" fill="rgba(76,175,80,0.18)" />
+                    <circle cx="355" cy="45" r="13" fill="rgba(76,175,80,0.32)" />
+
+                    <rect x="1" y="1" width="98" height="138" rx="2" fill="none" stroke="#ccc" stroke-width="0.5" />
+                    <rect x="101" y="1" width="98" height="138" rx="2" fill="none" stroke="#ccc" stroke-width="0.5" />
+                    <rect x="201" y="1" width="98" height="138" rx="2" fill="none" stroke="#ccc" stroke-width="0.5" />
+                    <rect x="301" y="1" width="98" height="138" rx="2" fill="none" stroke="#ccc" stroke-width="0.5" />
+
+                    <text x="6" y="13" fill="#aaa" font-size="8" font-family="monospace">P1</text>
+                    <text x="106" y="13" fill="#aaa" font-size="8" font-family="monospace">P2</text>
+                    <text x="206" y="13" fill="#aaa" font-size="8" font-family="monospace">P3</text>
+                    <text x="306" y="13" fill="#aaa" font-size="8" font-family="monospace">P4</text>
+
+                    <text x="6" y="133" fill="rgba(232,89,60,0.9)" font-size="8" font-family="monospace">HIGH 821</text>
+                    <text x="106" y="133" fill="rgba(242,166,35,0.9)" font-size="8" font-family="monospace">MED 612</text>
+                    <text x="206" y="133" fill="rgba(232,89,60,0.9)" font-size="8" font-family="monospace">HIGH 744</text>
+                    <text x="306" y="133" fill="rgba(76,175,80,0.9)" font-size="8" font-family="monospace">LOW 381</text>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent High-Priority Incidents Table -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header card-header-primary">
+                <h4 class="card-title">Recent High-Priority Incidents</h4>
+                <p class="card-category">Gold Coast · All Precincts</p>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="text-primary">
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Type</th>
+                                <th>Location</th>
+                                <th>Date</th>
+                                <th>Priority</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>#GC-2025-0381</strong></td>
+                                <td>Armed Robbery</td>
+                                <td>Surfers Paradise</td>
+                                <td>12 Mar</td>
+                                <td><span class="badge" style="background:#e8593c;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">High</span></td>
+                                <td>
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8593c;margin-right:5px;vertical-align:middle"></span>Open
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#GC-2025-0374</strong></td>
+                                <td>Assault</td>
+                                <td>Broadbeach</td>
+                                <td>11 Mar</td>
+                                <td><span class="badge" style="background:#e8593c;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">High</span></td>
+                                <td>
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f2a623;margin-right:5px;vertical-align:middle"></span>Pending
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#GC-2025-0362</strong></td>
+                                <td>Burglary</td>
+                                <td>Southport</td>
+                                <td>10 Mar</td>
+                                <td><span class="badge" style="background:#f2a623;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">Medium</span></td>
+                                <td>
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:5px;vertical-align:middle"></span>Closed
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#GC-2025-0355</strong></td>
+                                <td>Vehicle Theft</td>
+                                <td>Robina</td>
+                                <td>09 Mar</td>
+                                <td><span class="badge" style="background:#f2a623;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">Medium</span></td>
+                                <td>
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e8593c;margin-right:5px;vertical-align:middle"></span>Open
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>#GC-2025-0344</strong></td>
+                                <td>Drug Possession</td>
+                                <td>Coolangatta</td>
+                                <td>08 Mar</td>
+                                <td><span class="badge" style="background:#4caf50;color:#fff;padding:3px 8px;border-radius:3px;font-size:11px">Low</span></td>
+                                <td>
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:5px;vertical-align:middle"></span>Closed
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="stats">
+                    <i class="material-icons">update</i> Generated: 07 May 2025 · 09:14 AEST &nbsp;|&nbsp; Gold Coast Police District · Internal Use Only
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Sparkline bars
+        const vals = [310, 295, 340, 285, 360, 320, 390, 350, 410, 365, 440, 380];
+        const mx = Math.max(...vals);
+        const colors = ['#26c6da','#66bb6a','#26c6da','#f2a623','#f2a623','#26c6da','#f2a623','#e8593c','#e8593c','#f2a623','#e8593c','#e8593c'];
+        const spark = document.getElementById('sparkline');
+        vals.forEach((v, i) => {
+            const b = document.createElement('div');
+            b.style.cssText = `flex:1;height:${Math.round(v / mx * 100)}%;background:${colors[i]};border-radius:2px 2px 0 0;opacity:0.8;transition:opacity 0.2s`;
+            b.onmouseenter = () => b.style.opacity = '1';
+            b.onmouseleave = () => b.style.opacity = '0.8';
+            spark.appendChild(b);
+        });
+    </script>
+}
