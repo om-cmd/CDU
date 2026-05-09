@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Domain_Layer.DbModels.Enum;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -22,8 +23,7 @@ namespace Domain_Layer.DbModels
         [MaxLength(100)]
         public string? CrimeDateTimeRaw { get; set; }
 
-        [MaxLength(150)]
-        public string? CrimeType { get; set; }
+        public CrimeType CrimeType { get; set; }
 
         [MaxLength(20)]
         public string? ReportingArea { get; set; }

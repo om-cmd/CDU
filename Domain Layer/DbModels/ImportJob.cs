@@ -31,8 +31,7 @@ namespace Domain_Layer.DbModels
         public DateTime? CompletedAt { get; set; }
         public double? DurationSeconds { get; set; }
 
-        [MaxLength(450)]
-        public string? UserAccountId { get; set; }
+        public int? UserAccountId { get; set; }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid RowStamp { get; set; } = Guid.NewGuid();
