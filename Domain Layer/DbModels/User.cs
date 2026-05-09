@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNet.Identity.EntityFramework;
+﻿using Domain_Layer.DbModels.Enum;
+using Microsoft.AspNet.Identity.EntityFramework;
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -68,7 +69,7 @@ namespace Domain_Layer.DbModels
 
         public bool EmailConfirmedStatus { get; set; } = false;
 
-        public int? UserTypeId { get; set; }
+        public UserType UserType { get; set; }
 
         public int? Gender { get; set; }
 
