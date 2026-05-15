@@ -1,0 +1,253 @@
+﻿@{
+    ViewData["Title"] = "Crime Data Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" />
+    <style>
+      
+
+        body { background: var(--paper); color: var(--ink); }
+
+        .page-header {
+            background: var(--ink);
+            color: #fff;
+            padding: 2rem 2.5rem 1.5rem;
+            margin-bottom: 0;
+            border-bottom: 4px solid var(--accent);
+        }
+        .page-header h1 {
+            font-family: 'Georgia', serif;
+            font-size: 2rem;
+            letter-spacing: -0.5px;
+            margin: 0 0 .25rem;
+        }
+        .page-header p {
+            font-size: .85rem;
+            color: #aaa;
+            margin: 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        .toolbar {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: .85rem 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-export {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: .45rem 1.1rem;
+            font-size: .82rem;
+            border-radius: 3px;
+            font-weight: 600;
+            letter-spacing: .04em;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            transition: background .15s;
+        }
+        .btn-export:hover { background: #a93226; color: #fff; }
+
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            margin-left: auto;
+            font-size: .8rem;
+            color: var(--muted);
+            font-family: 'Courier New', monospace;
+        }
+        .stats-bar strong { color: var(--ink); font-size: 1rem; }
+
+        .table-wrap {
+            padding: 1.5rem 2.5rem 3rem;
+        }
+
+        table.dataTable thead th {
+            background: var(--ink);
+            font-family: 'Courier New', monospace;
+            font-size: .75rem;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            border-bottom: none !important;
+            padding: .7rem 1rem;
+            white-space: nowrap;
+        }
+        table.dataTable thead th:hover { background: #1e2730; }
+        table.dataTable thead .sorting:after,
+        table.dataTable thead .sorting_asc:after,
+        table.dataTable thead .sorting_desc:after { color: var(--accent) !important; }
+
+        table.dataTable tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .1s;
+        }
+        table.dataTable tbody tr:hover td { background: var(--row-hover) !important; }
+        table.dataTable tbody td {
+            font-size: .82rem;
+            padding: .6rem 1rem;
+            vertical-align: middle;
+            color: var(--ink);
+        }
+
+        .badge-crime {
+            display: inline-block;
+            padding: .18em .6em;
+            border-radius: 2px;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+        }
+       
+
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: .3rem .6rem;
+            font-size: .82rem;
+            outline: none;
+        }
+        .dataTables_wrapper .dataTables_filter input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(192,57,43,.15);
+        }
+        .dataTables_wrapper .dataTables_length select {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: .25rem .4rem;
+            font-size: .82rem;
+        }
+        .dataTables_wrapper .dataTables_info {
+            font-size: .78rem;
+            color: var(--muted);
+            font-family: 'Courier New', monospace;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            font-size: .78rem !important;
+        }
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: var(--accent) !important;
+            color: #fff !important;
+            border-color: var(--accent) !important;
+            border-radius: 3px;
+        }
+
+    </style>
+}
+
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>PARSING CSV — PLEASE WAIT</p>
+</div>
+
+<div >
+    <p>Cambridge, MA &nbsp;|&nbsp; Source: Crime_Reports_20260508.csv</p>
+</div>
+
+<div class="toolbar">
+    <button class="btn-export" id="btnExport">
+        &#8595; Export CSV
+    </button>
+    <div class="stats-bar">
+        <div>Records loaded: <strong id="statTotal">—</strong></div>
+        <div>Filtered: <strong id="statFiltered">—</strong></div>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table id="crimeTable" class="table table-bordered w-100" style="display:none;">
+        <thead>
+            <tr>
+                <th>File #</th>
+                <th>Date of Report</th>
+                <th>Crime Date/Time</th>
+                <th>Crime Type</th>
+                <th>Area</th>
+                <th>Neighborhood</th>
+                <th>Location</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            const badgeClass = type => 'badge-crime badge-' + (type || 'Unknown').replace(/\s/g, '');
+
+            const table = $('#crimeTable').DataTable({
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: '@Url.Action("LoadData", "CrimeData")',
+                    type: 'GET',
+                    data: function (d) {
+                        return {
+                            draw:        d.draw,
+                            start:       d.start,
+                            length:      d.length,
+                            searchValue: d.search.value,
+                            sortColumn:  d.columns[d.order[0].column]?.data,
+                            sortDir:     d.order[0].dir
+                        };
+                    },
+                    dataSrc: function (json) {
+                        $('#statTotal').text(Number(json.recordsTotal).toLocaleString());
+                        $('#statFiltered').text(Number(json.recordsFiltered).toLocaleString());
+                        $('#loadingOverlay').fadeOut(300);
+                        $('#crimeTable').fadeIn(200);
+                        return json.data;
+                    }
+                },
+                columns: [
+                    { data: 'fileNumber' },
+                    { data: 'dateOfReport' },
+                    { data: 'crimeDateTime' },
+                    {
+                        data: 'crimeType',
+                        render: (d) => `<span class="${badgeClass(d)}">${d}</span>`
+                    },
+                    { data: 'reportingArea' },
+                    { data: 'neighborhood' },
+                    { data: 'location', render: d => d.length > 40 ? `<span title="${d}">${d.substring(0, 40)}…</span>` : d },
+                    { data: 'latitude',  orderable: false },
+                    { data: 'longitude', orderable: false }
+                ],
+                pageLength: 25,
+                lengthMenu: [10, 25, 50, 100],
+                order: [[1, 'desc']],
+                language: {
+                    search: '',
+                    searchPlaceholder: 'Search records…',
+                    processing: ''
+                },
+                dom: '<"row align-items-center mb-2"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>rtip'
+            });
+
+            // Export with current search filter
+            $('#btnExport').on('click', function () {
+                const search = encodeURIComponent(table.search());
+                window.location.href = '@Url.Action("ExportCsv", "CrimeData")?searchValue=' + search;
+            });
+        });
+    </script>
+}
