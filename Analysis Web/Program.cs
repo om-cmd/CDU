@@ -11,6 +11,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+//merory cache for daster data loading in dashboard
+builder.Services.AddMemoryCache(); 
+
 //builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 //{
 //    options.Password.RequiredLength = 6;
