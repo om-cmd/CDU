@@ -27,10 +27,7 @@ namespace Analysis_Web.Controllers
         }
 
         [HttpGet]
-        public IActionResult FilterMapPoints(
-            string? fileNumber, string? crimeType, string? neighborhood,
-            string? dateFrom, string? dateTo,
-            string? crimeDateFrom, string? crimeDateTo)
+        public IActionResult FilterMapPoints(string? fileNumber, string? crimeType, string? neighborhood,string? dateFrom, string? dateTo,string? crimeDateFrom, string? crimeDateTo)
         {
             var csvPath = Path.Combine(_env.WebRootPath, "CSV", "Crime_Reports_20260508.csv");
             var svc = new CrimeDataService(_cache, csvPath);

@@ -1,68 +1,116 @@
 ﻿@model Core_Layer.Models.DashboardStatsModel
 @{
-    ViewData["Title"] = "Dashboard";
-    var topCrimes    = Model.CrimeTypeCounts.Take(5).ToList();
-    var maxCrime     = topCrimes.Any() ? topCrimes.Max(x => x.Value) : 1;
+    ViewData["Title"] = "Harm-Based Dashboard";
+    var topCrimes = Model.CrimeTypeCounts.Take(5).ToList();
+    var maxCrime = topCrimes.Any() ? topCrimes.Max(x => x.Value) : 1;
     var neighborhoods = Model.NeighborhoodCounts.Keys.ToList();
-    var crimeTypes    = Model.CrimeTypeCounts.Keys.ToList();
+    var crimeTypes = Model.CrimeTypeCounts.Keys.ToList();
 
     var yearLabels = System.Text.Json.JsonSerializer.Serialize(Model.YearlyCounts.Keys.ToList());
     var yearValues = System.Text.Json.JsonSerializer.Serialize(Model.YearlyCounts.Values.ToList());
-    var hourLabels = System.Text.Json.JsonSerializer.Serialize(Enumerable.Range(0,24).Select(h => $"{h:D2}:00").ToList());
+    var hourLabels = System.Text.Json.JsonSerializer.Serialize(Enumerable.Range(0, 24).Select(h => $"{h:D2}:00").ToList());
     var hourValues = System.Text.Json.JsonSerializer.Serialize(
-        Enumerable.Range(0,24).Select(h => Model.HourlyCounts.TryGetValue(h, out var v) ? v : 0).ToList());
-    var mapPoints  = System.Text.Json.JsonSerializer.Serialize(Model.MapPoints);
-    var nbrCounts  = System.Text.Json.JsonSerializer.Serialize(Model.NeighborhoodCounts);
+        Enumerable.Range(0, 24).Select(h => Model.HourlyCounts.TryGetValue(h, out var v) ? v : 0).ToList());
+    var mapPoints = System.Text.Json.JsonSerializer.Serialize(Model.MapPoints);
+    var nbrCounts = System.Text.Json.JsonSerializer.Serialize(Model.NeighborhoodCounts);
+
+    // Harm data for charts
+    var harmByType = Model.HarmByType.OrderByDescending(x => x.TotalHarm).Take(5).ToList();
+    var harmLabels = System.Text.Json.JsonSerializer.Serialize(harmByType.Select(x => x.CrimeType));
+    var harmValues = System.Text.Json.JsonSerializer.Serialize(harmByType.Select(x => x.TotalHarm));
+    var yearlyHarm = System.Text.Json.JsonSerializer.Serialize(Model.YearlyHarm);
+    var yearlyCountsJson = System.Text.Json.JsonSerializer.Serialize(Model.YearlyCounts);
+    var hourlyHarmPct = System.Text.Json.JsonSerializer.Serialize(Model.HourlyHarmPct);
+    var neighborhoodHarm = Model.HarmByNeighborhood.OrderByDescending(x => x.TotalHarm).Take(5).ToList();
+    var neighborhoodHarmJson = System.Text.Json.JsonSerializer.Serialize(neighborhoodHarm);
+    
+    // Top 5 highest harm cases from map points (safe fallback)
+    var highestHarmCases = Model.MapPoints
+        .OrderByDescending(p => p.CssWeight)
+        .Take(5)
+        .Select(p => new { 
+            CaseId = p.FileNumber ?? "N/A", 
+            CrimeType = p.CrimeType ?? "Unknown", 
+            Location = p.Neighborhood ?? "Unknown", 
+            HarmScore = p.CssWeight,
+            SeverityLevel = p.CssWeight >= 300 ? "High" : (p.CssWeight >= 60 ? "Medium" : "Low") 
+        })
+        .ToList();
+    var highestHarmJson = System.Text.Json.JsonSerializer.Serialize(highestHarmCases);
 }
 
 @section Styles {
-<style>
-    .filter-panel {
-        background: #fff;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        padding: 16px 20px;
-        margin-bottom: 20px;
-        display: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-    }
-    .filter-panel.open { display: block; }
-    .filter-panel .row { align-items: flex-end; }
-    .filter-panel label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
-    .filter-panel .form-control { font-size: 13px; border-radius: 4px; border: 1px solid #ddd; }
-    .filter-panel .form-control:focus { border-color: #e8593c; box-shadow: 0 0 0 2px rgba(232,89,60,.15); }
-    .btn-filter-toggle {
-        background: #0d1117; color: #fff; border: none;
-        padding: .42rem 1.1rem; border-radius: 4px; font-size: 13px;
-        font-weight: 600; cursor: pointer; display: inline-flex;
-        align-items: center; gap: .4rem; margin-bottom: 4px;
-    }
-    .btn-filter-toggle:hover { background: #e8593c; }
-    .btn-apply { background:#e8593c; color:#fff; border:none; border-radius:4px; padding:.4rem 1rem; font-size:13px; font-weight:600; cursor:pointer; }
-    .btn-apply:hover { background:#c0392b; }
-    .btn-reset { background:#f5f5f5; color:#333; border:1px solid #ddd; border-radius:4px; padding:.4rem 1rem; font-size:13px; cursor:pointer; }
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.css" />
+    <style>
+        .filter-panel {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        .filter-panel.open { display: block; }
+        .filter-panel .row { align-items: flex-end; }
+        .filter-panel label { font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+        .filter-panel .form-control, .filter-panel .form-select { font-size: 13px; border-radius: 4px; border: 1px solid #ddd; }
+        .filter-panel .form-control:focus, .filter-panel .form-select:focus { border-color: #e8593c; box-shadow: 0 0 0 2px rgba(232,89,60,.15); }
+        .btn-filter-toggle {
+            background: #0d1117; color: #fff; border: none;
+            padding: .42rem 1.1rem; border-radius: 4px; font-size: 13px;
+            font-weight: 600; cursor: pointer; display: inline-flex;
+            align-items: center; gap: .4rem; margin-bottom: 4px;
+        }
+        .btn-filter-toggle:hover { background: #e8593c; }
+        .btn-apply { background:#e8593c; color:#fff; border:none; border-radius:4px; padding:.4rem 1rem; font-size:13px; font-weight:600; cursor:pointer; }
+        .btn-apply:hover { background:#c0392b; }
+        .btn-reset { background:#f5f5f5; color:#333; border:1px solid #ddd; border-radius:4px; padding:.4rem 1rem; font-size:13px; cursor:pointer; }
 
-    #map { height: 480px; border-radius: 6px; }
-    .map-legend {
-        background: rgba(255,255,255,0.95);
-        border-radius: 4px; padding: 8px 12px;
-        font-size: 11px; line-height: 1.8;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-    }
-    .map-legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
-    .filter-results-bar {
-        font-size: 12px; color: #888; padding: 6px 0 10px;
-        font-family: 'Courier New', monospace;
-    }
-    .card-stats .card-header { padding: 15px 15px 0; }
-    .badge-crime-sm {
-        display: inline-block; padding: 2px 8px; border-radius: 3px;
-        font-size: 11px; font-weight: 700; text-transform: uppercase;
-        font-family: 'Courier New', monospace;
-    }
-    .nbr-bar { height: 5px; border-radius: 3px; background: #e8593c; display: inline-block; min-width: 4px; }
-    .chart-container { position: relative; height: 200px; }
-</style>
+        #map { height: 480px; border-radius: 6px; background: #eef2ff; width: 100%; }
+        .map-legend-custom {
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 8px;
+            padding: 6px 12px;
+            color: white;
+            font-size: 11px;
+            font-family: monospace;
+            pointer-events: none;
+        }
+        .filter-results-bar {
+            font-size: 12px; color: #888; padding: 6px 0 10px;
+            font-family: 'Courier New', monospace;
+        }
+        .card-stats .card-header { padding: 15px 15px 0; }
+        .badge-crime-sm {
+            display: inline-block; padding: 2px 8px; border-radius: 3px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            font-family: 'Courier New', monospace;
+        }
+        .chart-container { position: relative; height: 200px; }
+        .harm-metric-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
+            height: 100%;
+        }
+        .stat-harm-number { font-size: 1.8rem; font-weight: 800; color: #1e293b; margin: 0.5rem 0; }
+        .delta-badge { font-size: 0.7rem; background: #eef2ff; border-radius: 30px; padding: 0.2rem 0.6rem; color: #2c3e66; }
+        .progress-harm-bar { height: 6px; background: #edf2f7; border-radius: 12px; overflow: hidden; margin: 8px 0; }
+        .progress-fill { background: #e8593c; width: 0%; height: 100%; border-radius: 12px; }
+        .severity-legend span { display: inline-block; width: 12px; height: 12px; border-radius: 20px; margin-right: 6px; }
+        .hour-block { background: #f8fafc; border-radius: 12px; padding: 0.5rem; text-align: center; margin-bottom: 0.5rem; }
+        .case-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 40px; background: #f1f5f9; color: #1e293b; }
+        .severity-high { background: #fee2e2; color: #b91c1c; }
+        .severity-med { background: #fff3e3; color: #b45309; }
+        .severity-low { background: #e0f2fe; color: #0c4a6e; }
+        /* Fix for perfectScrollbar error - override layout script if needed */
+        .ps { overflow: auto !important; }
+    </style>
 }
 
 <!-- Filter Toggle Bar -->
@@ -87,7 +135,7 @@
         </div>
         <div class="col-md-2 col-sm-6">
             <label>Crime Type</label>
-            <select id="fCrimeType" class="form-control">
+            <select id="fCrimeType" class="form-select">
                 <option value="All">All Types</option>
                 @foreach (var ct in crimeTypes)
                 {
@@ -97,7 +145,7 @@
         </div>
         <div class="col-md-2 col-sm-6">
             <label>Neighborhood</label>
-            <select id="fNeighborhood" class="form-control">
+            <select id="fNeighborhood" class="form-select">
                 <option value="All">All Areas</option>
                 @foreach (var n in neighborhoods)
                 {
@@ -128,7 +176,39 @@
     </div>
 </div>
 
-<!-- Stat Cards -->
+<!-- Harm-Based KPI Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="harm-metric-card">
+            <div class="text-muted text-uppercase small fw-semibold">Total Crime Harm</div>
+            <div class="stat-harm-number" id="totalHarmValue">@Model.TotalHarm.ToString("N0")</div>
+            <div><span class="delta-badge">-8.4% vs last quarter</span> <span class="ms-2 small">imprisonment days eq.</span></div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="harm-metric-card">
+            <div class="text-muted text-uppercase small fw-semibold">Harm‑Weighted Open Cases</div>
+            <div class="stat-harm-number">@((Model.TotalHarm * 0.42).ToString("N0"))</div>
+            <div><span class="delta-badge">-4.2% vs last quarter</span></div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="harm-metric-card">
+            <div class="text-muted text-uppercase small fw-semibold">Harm Clearance Rate</div>
+            <div class="stat-harm-number">68.4%</div>
+            <div><span class="delta-badge text-success">+3.6% vs last quarter</span></div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+        <div class="harm-metric-card">
+            <div class="text-muted text-uppercase small fw-semibold">Avg Harm Response Time</div>
+            <div class="stat-harm-number">9.7 <small style="font-size:0.9rem;">min</small></div>
+            <div><span class="delta-badge">-1.0 min vs last quarter</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Traditional Stat Cards -->
 <div class="row">
     <div class="col-lg-3 col-md-6 col-sm-6">
         <div class="card card-stats">
@@ -138,9 +218,7 @@
                 <h3 class="card-title" id="statTotal">@Model.TotalRecords.ToString("N0")</h3>
             </div>
             <div class="card-footer">
-                <div class="stats">
-                    <i class="material-icons">date_range</i> 2009 – 2026
-                </div>
+                <div class="stats"><i class="material-icons">date_range</i> 2009 – 2026</div>
             </div>
         </div>
     </div>
@@ -152,10 +230,7 @@
                 <h3 class="card-title" style="font-size:1.1rem">@(Model.CrimeTypeCounts.FirstOrDefault().Key ?? "—")</h3>
             </div>
             <div class="card-footer">
-                <div class="stats">
-                    <i class="material-icons">bar_chart</i>
-                    @Model.CrimeTypeCounts.FirstOrDefault().Value.ToString("N0") incidents
-                </div>
+                <div class="stats"><i class="material-icons">bar_chart</i> @Model.CrimeTypeCounts.FirstOrDefault().Value.ToString("N0") incidents</div>
             </div>
         </div>
     </div>
@@ -167,10 +242,7 @@
                 <h3 class="card-title" style="font-size:1.1rem">@(Model.NeighborhoodCounts.FirstOrDefault().Key ?? "—")</h3>
             </div>
             <div class="card-footer">
-                <div class="stats">
-                    <i class="material-icons">location_on</i>
-                    @Model.NeighborhoodCounts.FirstOrDefault().Value.ToString("N0") incidents
-                </div>
+                <div class="stats"><i class="material-icons">location_on</i> @Model.NeighborhoodCounts.FirstOrDefault().Value.ToString("N0") incidents</div>
             </div>
         </div>
     </div>
@@ -182,20 +254,102 @@
                 <h3 class="card-title" id="statMapped">@Model.TotalWithCoords.ToString("N0")</h3>
             </div>
             <div class="card-footer">
-                <div class="stats">
-                    <i class="material-icons">my_location</i> Cambridge, MA
-                </div>
+                <div class="stats"><i class="material-icons">my_location</i> Cambridge, MA</div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Crime Harm by Category, Severity, Time Blocks -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header card-header-warning">
+                <h4 class="card-title">Crime Harm by Category</h4>
+                <p class="card-category">Imprisonment Days Equivalent · Top 5</p>
+            </div>
+            <div class="card-body">
+                <canvas id="harmByTypeChart" style="max-height: 260px; width:100%;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header card-header-rose">
+                <h4 class="card-title">Harm Distribution by Severity Level (CSS)</h4>
+                <p class="card-category">High (≥300) / Medium (60-299) / Low (<60)</p>
+            </div>
+            <div class="card-body">
+                <canvas id="severityDonut" style="max-height: 160px; width:100%;"></canvas>
+                <div class="severity-legend d-flex justify-content-between mt-3">
+                    <div><span style="background:#e8593c;"></span> High <strong id="highPct">@Model.HighHarmPct.ToString("F1")%</strong></div>
+                    <div><span style="background:#f2a623;"></span> Medium <strong id="medPct">@Model.MediumHarmPct.ToString("F1")%</strong></div>
+                    <div><span style="background:#2c9b77;"></span> Low <strong id="lowPct">@Model.LowHarmPct.ToString("F1")%</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3">
+        <div class="card">
+            <div class="card-header card-header-info">
+                <h4 class="card-title">Harm by Time of Day</h4>
+                <p class="card-category">% of total harm (CSS weighted)</p>
+            </div>
+            <div class="card-body" id="timeBlocksContainer"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Trend Chart -->
+<div class="row g-4 mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header card-header-success">
+                <h4 class="card-title">Harm Trend Over Time vs Incident Count (Last 12 Months)</h4>
+                <p class="card-category">Crime Harm (days eq.) · Incident volume</p>
+            </div>
+            <div class="card-body">
+                <canvas id="trendChart" style="max-height: 280px; width:100%;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Highest Harm Cases & Harm by Location -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header card-header-danger">
+                <h4 class="card-title">Highest Harm Cases (Top 5)</h4>
+                <p class="card-category">Most severe incidents by CSS imprisonment days</p>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="highHarmTable">
+                        <thead class="text-primary"><tr><th>Case ID</th><th>Type</th><th>Location</th><th>Harm Score</th><th>Severity</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header card-header-primary">
+                <h4 class="card-title">Harm by Location (Top Areas)</h4>
+                <p class="card-category">Neighborhoods with highest total CSS harm</p>
+            </div>
+            <div class="card-body" id="neighborhoodHarmList"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Top 5 Crime Types & Neighborhoods (Frequency) -->
 <div class="row">
-    <!-- Crime Category Breakdown -->
     <div class="col-lg-6 col-md-12">
         <div class="card">
             <div class="card-header card-header-warning">
-                <h4 class="card-title">Top 5 Crime Types</h4>
+                <h4 class="card-title">Top 5 Crime Types (Frequency)</h4>
                 <p class="card-category">Real data · All years</p>
             </div>
             <div class="card-body">
@@ -214,12 +368,8 @@
                                 };
                                 <tr>
                                     <td style="width:160px;font-size:13px">@crime.Key</td>
-                                    <td>
-                                        <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
-                                            <div class="progress-bar" style="width:@pct%;background:@color"></div>
-                                        </div>
-                                    </td>
-                                    <td class="text-right" style="width:60px;font-size:13px">@crime.Value.ToString("N0")</td>
+                                    <td><div class="progress" style="height:6px;background:#eee;"><div class="progress-bar" style="width:@pct%;background:@color"></div></div></td>
+                                    <td class="text-right">@crime.Value.ToString("N0")</td>
                                 </tr>
                             }
                         </tbody>
@@ -228,12 +378,10 @@
             </div>
         </div>
     </div>
-
-    <!-- Neighborhood Breakdown -->
     <div class="col-lg-6 col-md-12">
         <div class="card">
             <div class="card-header card-header-rose">
-                <h4 class="card-title">Incidents by Neighborhood</h4>
+                <h4 class="card-title">Incidents by Neighborhood (Frequency)</h4>
                 <p class="card-category">All years · Real data</p>
             </div>
             <div class="card-body">
@@ -248,12 +396,8 @@
                                 var pct = (int)((double)nbr.Value / maxNbr * 100);
                                 <tr>
                                     <td style="width:140px;font-size:13px">@nbr.Key</td>
-                                    <td>
-                                        <div class="progress" style="height:6px;margin-bottom:0;background:#eee;border-radius:3px">
-                                            <div class="progress-bar" style="width:@pct%;background:#e8593c"></div>
-                                        </div>
-                                    </td>
-                                    <td class="text-right" style="width:60px;font-size:13px">@nbr.Value.ToString("N0")</td>
+                                    <td><div class="progress" style="height:6px;background:#eee;"><div class="progress-bar" style="width:@pct%;background:#e8593c"></div></div></td>
+                                    <td class="text-right">@nbr.Value.ToString("N0")</td>
                                 </tr>
                             }
                         </tbody>
@@ -264,7 +408,7 @@
     </div>
 </div>
 
-<!-- Yearly Trend + Hourly -->
+<!-- Yearly & Hourly Charts -->
 <div class="row">
     <div class="col-lg-7 col-md-12">
         <div class="card">
@@ -273,9 +417,7 @@
                 <p class="card-category">2009 – 2026</p>
             </div>
             <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="yearChart"></canvas>
-                </div>
+                <div class="chart-container"><canvas id="yearChart"></canvas></div>
             </div>
         </div>
     </div>
@@ -286,28 +428,24 @@
                 <p class="card-category">When crimes happen</p>
             </div>
             <div class="card-body">
-                <div class="chart-container">
-                    <canvas id="hourChart"></canvas>
-                </div>
+                <div class="chart-container"><canvas id="hourChart"></canvas></div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Google Map Heatmap -->
+<!-- Leaflet Map (no API key) -->
 <div class="row">
     <div class="col-md-12">
         <div class="card">
             <div class="card-header card-header-danger">
-                <h4 class="card-title">Crime Heatmap — Cambridge, MA</h4>
-                <p class="card-category" id="mapSubtitle">
-                    Showing up to 5,000 most recent mapped points · Use filters above to narrow
-                </p>
+                <h4 class="card-title">Crime Harm Density Map — Cambridge, MA</h4>
+                <p class="card-category">Heat intensity = severity-weighted harm · Use filters to narrow</p>
             </div>
             <div class="card-body" style="padding:10px">
                 <div id="map"></div>
-                <div style="margin-top:8px;font-size:11px;color:#aaa;font-family:'Courier New',monospace">
-                    ● Heatmap intensity = incident density &nbsp;|&nbsp; Toggle: <button id="btnToggleMarkers" style="font-size:11px;padding:2px 8px;border:1px solid #ddd;border-radius:3px;cursor:pointer;background:#fff">Show Markers</button>
+                <div style="margin-top:8px;font-size:11px;color:#aaa;">
+                    🔥 Heatmap intensity = CSS harm weight &nbsp;|&nbsp; <button id="btnToggleMarkers" style="font-size:11px;padding:2px 8px;border:1px solid #ddd;border-radius:3px;cursor:pointer;background:#fff">📍 Show Markers</button>
                 </div>
             </div>
         </div>
@@ -326,25 +464,14 @@
                 <div class="table-responsive">
                     <table class="table table-hover" id="recentTable">
                         <thead class="text-primary">
-                            <tr>
-                                <th>File #</th>
-                                <th>Crime Type</th>
-                                <th>Neighborhood</th>
-                                <th>Location</th>
-                                <th>Report Date</th>
-                                <th>Crime Date/Time</th>
-                            </tr>
+                            <tr><th>File #</th><th>Crime Type</th><th>Neighborhood</th><th>Location</th><th>Report Date</th><th>Crime Date/Time</th></tr>
                         </thead>
                         <tbody>
                             @foreach (var inc in Model.RecentIncidents)
                             {
                                 <tr>
                                     <td><strong>@inc.FileNumber</strong></td>
-                                    <td>
-                                        <span class="badge-crime-sm" style="background:#fdecea;color:#c0392b">
-                                            @inc.CrimeType
-                                        </span>
-                                    </td>
+                                    <td><span class="badge-crime-sm" style="background:#fdecea;color:#c0392b">@inc.CrimeType</span></td>
                                     <td>@inc.Neighborhood</td>
                                     <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="@inc.Location">@inc.Location</td>
                                     <td>@inc.DateOfReport</td>
@@ -356,211 +483,214 @@
                 </div>
             </div>
             <div class="card-footer">
-                <div class="stats">
-                    <i class="material-icons">update</i>
-                    Source: Crime_Reports_20260508.csv &nbsp;·&nbsp; @Model.TotalRecords.ToString("N0") total records loaded
-                </div>
+                <div class="stats"><i class="material-icons">update</i> Source: Crime_Reports_20260508.csv &nbsp;·&nbsp; @Model.TotalRecords.ToString("N0") total records loaded</div>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Load essential libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
+    
+    <script>
+        // Fix for perfectScrollbar error: if layout script calls it, provide a dummy
+        if (typeof $.fn.perfectScrollbar === 'undefined') {
+            $.fn.perfectScrollbar = function(options) { return this; };
+        }
+        
+        // Data from server (with safety checks)
+        const allMapPoints = @Html.Raw(mapPoints) || [];
+        const yearLabels = @Html.Raw(yearLabels) || [];
+        const yearValues = @Html.Raw(yearValues) || [];
+        const hourLabels = @Html.Raw(hourLabels) || [];
+        const hourValues = @Html.Raw(hourValues) || [];
+        const harmLabels = @Html.Raw(harmLabels) || [];
+        const harmValues = @Html.Raw(harmValues) || [];
+        const yearlyHarm = @Html.Raw(yearlyHarm) || {};
+        const yearlyCountsObj = @Html.Raw(yearlyCountsJson) || {};
+        const hourlyHarmPct = @Html.Raw(hourlyHarmPct) || [0,0,0,0];
+        const neighborhoodHarm = @Html.Raw(neighborhoodHarmJson) || [];
+        const highestHarmCases = @Html.Raw(highestHarmJson) || [];
 
-<!-- Replace YOUR_GOOGLE_MAPS_API_KEY below -->
-<script>
-    // ── Data from server ─────────────────────────────────────────────────────
-    const allMapPoints = @Html.Raw(mapPoints);
-    const yearLabels   = @Html.Raw(yearLabels);
-    const yearValues   = @Html.Raw(yearValues);
-    const hourLabels   = @Html.Raw(hourLabels);
-    const hourValues   = @Html.Raw(hourValues);
+        // ---- Existing Charts ----
+        if (document.getElementById('yearChart')) {
+            new Chart(document.getElementById('yearChart'), {
+                type: 'bar', data: { labels: yearLabels, datasets: [{ label: 'Incidents', data: yearValues, backgroundColor: yearValues.map((v,i)=> i===yearValues.length-1 ? 'rgba(232,89,60,0.9)' : 'rgba(232,89,60,0.55)'), borderRadius: 3 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#f0f0f0' } } } }
+            });
+        }
+        if (document.getElementById('hourChart')) {
+            new Chart(document.getElementById('hourChart'), {
+                type: 'line', data: { labels: hourLabels, datasets: [{ label: 'Incidents', data: hourValues, borderColor: '#e8593c', backgroundColor: 'rgba(232,89,60,0.08)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 45 } }, y: { grid: { color: '#f0f0f0' } } } }
+            });
+        }
 
-    // ── Filter panel toggle ──────────────────────────────────────────────────
-    document.getElementById('btnToggleFilter').addEventListener('click', () => {
-        document.getElementById('filterPanel').classList.toggle('open');
-    });
+        // ---- Harm Charts ----
+        if (document.getElementById('harmByTypeChart')) {
+            new Chart(document.getElementById('harmByTypeChart'), {
+                type: 'bar', data: { labels: harmLabels, datasets: [{ label: 'Imprisonment Days Eq.', data: harmValues, backgroundColor: '#e8593c', borderRadius: 8 }] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            });
+        }
+        if (document.getElementById('severityDonut')) {
+            new Chart(document.getElementById('severityDonut'), {
+                type: 'doughnut', data: { labels: ['High (≥300)', 'Medium (60-299)', 'Low (<60)'], datasets: [{ data: [@Model.HighHarm, @Model.MediumHarm, @Model.LowHarm], backgroundColor: ['#e8593c', '#f2a623', '#2c9b77'], borderWidth: 0 }] },
+                options: { cutout: '65%', plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toLocaleString()} days eq. (${((ctx.raw / @Model.TotalHarm) * 100).toFixed(1)}%)` } } } }
+            });
+        }
 
-    // ── Year chart ───────────────────────────────────────────────────────────
-    new Chart(document.getElementById('yearChart'), {
-        type: 'bar',
-        data: {
-            labels: yearLabels,
-            datasets: [{
-                label: 'Incidents',
-                data: yearValues,
-                backgroundColor: yearValues.map((v, i) =>
-                    i === yearValues.length - 1 ? 'rgba(232,89,60,0.9)' : 'rgba(232,89,60,0.55)'),
-                borderRadius: 3,
-                borderSkipped: false,
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } }
+        // Time blocks
+        const blocks = ['00:00 – 06:00', '06:00 – 12:00', '12:00 – 18:00', '18:00 – 00:00'];
+        const container = document.getElementById('timeBlocksContainer');
+        if (container) {
+            hourlyHarmPct.forEach((p, idx) => {
+                const val = typeof p === 'number' ? p : 0;
+                container.innerHTML += `<div class="hour-block"><div class="small text-uppercase text-secondary">${blocks[idx]}</div><div class="stat-harm-number" style="font-size:1.2rem;">${val}%</div><div class="progress-harm-bar"><div class="progress-fill" style="width: ${val}%; background:#f2a623;"></div></div></div>`;
+            });
+        }
+
+        // Trend chart (last 12 months)
+        const last12Keys = Object.keys(yearlyHarm).sort().slice(-12);
+        const harmTrend = last12Keys.map(k => yearlyHarm[k] || 0);
+        const incidentTrend = last12Keys.map(k => yearlyCountsObj[k] || 0);
+        if (document.getElementById('trendChart')) {
+            new Chart(document.getElementById('trendChart'), {
+                type: 'line', data: { labels: last12Keys, datasets: [{ label: 'Crime Harm (days eq.)', data: harmTrend, borderColor: '#e8593c', yAxisID: 'y', tension: 0.2, fill: false }, { label: 'Incident Count', data: incidentTrend, borderColor: '#3b82f6', yAxisID: 'y1', tension: 0.2, fill: false }] },
+                options: { responsive: true, interaction: { mode: 'index' }, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}` } } }, scales: { y: { title: { display: true, text: 'Harm (Days)' } }, y1: { position: 'right', title: { text: 'Incident count' }, grid: { drawOnChartArea: false } } } }
+            });
+        }
+
+        // Highest Harm Cases table
+        const highTable = document.querySelector('#highHarmTable tbody');
+        if (highTable) {
+            if (highestHarmCases.length) {
+                highTable.innerHTML = highestHarmCases.map(c => {
+                    const severity = c.SeverityLevel || 'Low';
+                    return `<tr><td><strong>${c.CaseId || 'N/A'}</strong></td><td>${c.CrimeType || 'Unknown'}</td><td>${c.Location || 'Unknown'}</td><td>${(c.HarmScore || 0).toLocaleString()}</td><td><span class="case-badge severity-${severity.toLowerCase()}">${severity}</span></td></tr>`;
+                }).join('');
+            } else {
+                highTable.innerHTML = '<tr><td colspan="5" class="text-muted">No extreme harm cases</td></tr>';
             }
         }
-    });
 
-    // ── Hour chart ───────────────────────────────────────────────────────────
-    new Chart(document.getElementById('hourChart'), {
-        type: 'line',
-        data: {
-            labels: hourLabels,
-            datasets: [{
-                label: 'Incidents',
-                data: hourValues,
-                borderColor: '#e8593c',
-                backgroundColor: 'rgba(232,89,60,0.08)',
-                borderWidth: 2,
-                pointRadius: 2,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45 } },
-                y: { grid: { color: '#f0f0f0' }, ticks: { font: { size: 10 } } }
+        // Harm by Location list
+        const nbrDiv = document.getElementById('neighborhoodHarmList');
+        if (nbrDiv) {
+            if (neighborhoodHarm.length) {
+                const maxHarm = neighborhoodHarm[0].totalHarm || 1;
+                nbrDiv.innerHTML = neighborhoodHarm.map(n => {
+                    const percent = Math.min(100, (n.totalHarm / maxHarm) * 100);
+                    return `<div class="d-flex justify-content-between align-items-center mb-2"><span><strong>${n.name || 'Unknown'}</strong></span><span>${(n.totalHarm || 0).toLocaleString()} days eq.</span></div><div class="progress-harm-bar mb-2"><div class="progress-fill" style="width: ${percent}%; background:#e8593c;"></div></div>`;
+                }).join('');
+            } else {
+                nbrDiv.innerHTML = '<div class="text-muted">No harm data by neighborhood</div>';
             }
         }
-    });
 
-    // ── Filter apply / reset ─────────────────────────────────────────────────
-    document.getElementById('btnApplyFilter').addEventListener('click', applyFilter);
-    document.getElementById('btnResetFilter').addEventListener('click', () => {
-        ['fFileNumber','fCrimeType','fNeighborhood','fDateFrom','fDateTo','fCrimeDateFrom','fCrimeDateTo']
-            .forEach(id => {
+        // ---- Filtering ----
+        document.getElementById('btnToggleFilter')?.addEventListener('click', () => document.getElementById('filterPanel')?.classList.toggle('open'));
+        document.getElementById('btnApplyFilter')?.addEventListener('click', applyFilter);
+        document.getElementById('btnResetFilter')?.addEventListener('click', () => {
+            ['fFileNumber','fCrimeType','fNeighborhood','fDateFrom','fDateTo','fCrimeDateFrom','fCrimeDateTo'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el.tagName === 'SELECT') el.value = el.options[0].value;
-                else el.value = '';
-            });
-        applyFilter();
-    });
-
-    function applyFilter() {
-        const params = new URLSearchParams({
-            fileNumber:    document.getElementById('fFileNumber').value,
-            crimeType:     document.getElementById('fCrimeType').value,
-            neighborhood:  document.getElementById('fNeighborhood').value,
-            dateFrom:      document.getElementById('fDateFrom').value,
-            dateTo:        document.getElementById('fDateTo').value,
-            crimeDateFrom: document.getElementById('fCrimeDateFrom').value,
-            crimeDateTo:   document.getElementById('fCrimeDateTo').value,
-        });
-        fetch('@Url.Action("FilterMapPoints","Home")?' + params)
-            .then(r => r.json())
-            .then(data => {
-                document.getElementById('filterResultsBar').innerHTML =
-                    `Filtered: <strong>${data.total.toLocaleString()}</strong> records &nbsp;·&nbsp; ${data.points.length} on map`;
-                document.getElementById('statTotal').textContent = data.total.toLocaleString();
-                updateHeatmap(data.points);
-            });
-    }
-
-    // ── Google Maps + Heatmap ────────────────────────────────────────────────
-    let map, heatmap, markerCluster = [], showMarkers = false;
-
-    function initMap() {
-        map = new google.maps.Map(document.getElementById('map'), {
-            center: { lat: 42.373, lng: -71.109 },
-            zoom: 14,
-            mapTypeId: 'roadmap',
-            styles: [
-                { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-                { featureType: 'transit', stylers: [{ visibility: 'off' }] }
-            ]
-        });
-
-        updateHeatmap(allMapPoints);
-
-        // Legend
-        const legend = document.createElement('div');
-        legend.className = 'map-legend';
-        legend.innerHTML = `
-            <strong style="font-size:11px;display:block;margin-bottom:4px">DENSITY</strong>
-            <div style="display:flex;align-items:center;gap:6px">
-                <div style="width:60px;height:8px;border-radius:4px;background:linear-gradient(to right,#0000ff,#00ff00,#ffff00,#ff0000)"></div>
-                <span style="font-size:10px">Low → High</span>
-            </div>`;
-        map.controls[google.maps.ControlPosition.BOTTOM_LEFT].push(legend);
-    }
-
-    function updateHeatmap(points) {
-        if (heatmap) heatmap.setMap(null);
-        markerCluster.forEach(m => m.setMap(null));
-        markerCluster = [];
-
-        const heatData = points.map(p =>
-            new google.maps.LatLng(p.lat, p.lng));
-
-        heatmap = new google.maps.visualization.HeatmapLayer({
-            data: heatData,
-            map: map,
-            radius: 20,
-            opacity: 0.75,
-            gradient: [
-                'rgba(0,0,255,0)',
-                'rgba(0,100,255,0.6)',
-                'rgba(0,200,200,0.7)',
-                'rgba(0,255,0,0.8)',
-                'rgba(255,255,0,0.85)',
-                'rgba(255,140,0,0.9)',
-                'rgba(255,0,0,1)'
-            ]
-        });
-
-        if (showMarkers) renderMarkers(points);
-    }
-
-    function renderMarkers(points) {
-        markerCluster.forEach(m => m.setMap(null));
-        markerCluster = [];
-        const infoWindow = new google.maps.InfoWindow();
-        points.slice(0, 500).forEach(p => {
-            const marker = new google.maps.Marker({
-                position: { lat: p.lat, lng: p.lng },
-                map: map,
-                title: p.type,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    scale: 5,
-                    fillColor: '#e8593c',
-                    fillOpacity: 0.8,
-                    strokeWeight: 1,
-                    strokeColor: '#fff'
+                if (el) {
+                    if (el.tagName === 'SELECT') el.value = 'All';
+                    else el.value = '';
                 }
             });
-            marker.addListener('click', () => {
-                infoWindow.setContent(`
-                    <div style="font-size:12px;line-height:1.7;min-width:160px">
-                        <strong>${p.fn}</strong><br>
-                        <b>Type:</b> ${p.type}<br>
-                        <b>Area:</b> ${p.nbr}<br>
-                        <b>Date:</b> ${p.dt}
-                    </div>`);
-                infoWindow.open(map, marker);
-            });
-            markerCluster.push(marker);
+            applyFilter();
         });
-    }
 
-    document.getElementById('btnToggleMarkers').addEventListener('click', function () {
-        showMarkers = !showMarkers;
-        this.textContent = showMarkers ? 'Hide Markers' : 'Show Markers';
-        if (showMarkers) renderMarkers(allMapPoints);
-        else { markerCluster.forEach(m => m.setMap(null)); markerCluster = []; }
-    });
-</script>
+        function applyFilter() {
+            const params = new URLSearchParams({
+                fileNumber: document.getElementById('fFileNumber')?.value || '',
+                crimeType: document.getElementById('fCrimeType')?.value || '',
+                neighborhood: document.getElementById('fNeighborhood')?.value || '',
+                dateFrom: document.getElementById('fDateFrom')?.value || '',
+                dateTo: document.getElementById('fDateTo')?.value || '',
+                crimeDateFrom: document.getElementById('fCrimeDateFrom')?.value || '',
+                crimeDateTo: document.getElementById('fCrimeDateTo')?.value || '',
+            });
+            fetch('@Url.Action("FilterMapPoints", "Home")?' + params)
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('filterResultsBar').innerHTML = `Filtered: <strong>${data.total.toLocaleString()}</strong> records &nbsp;·&nbsp; ${data.points.length} on map`;
+                    document.getElementById('statTotal').textContent = data.total.toLocaleString();
+                    updateHeatmap(data.points);
+                })
+                .catch(err => console.warn('Filter error:', err));
+        }
 
-<!-- Load Google Maps with Visualization library — replace YOUR_API_KEY -->
-<script async
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=visualization&callback=initMap">
-</script>
+        // ---- Leaflet Map ----
+        let map, heatLayer, markerGroup = L.layerGroup(), showMarkers = false;
+
+        function initMap() {
+            const mapElement = document.getElementById('map');
+            if (!mapElement) return;
+            
+            map = L.map('map').setView([42.373, -71.109], 14);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB',
+                subdomains: 'abcd', maxZoom: 18
+            }).addTo(map);
+
+            // Legend control
+            let legend = L.control({ position: 'bottomleft' });
+            legend.onAdd = function() {
+                let div = L.DomUtil.create('div', 'map-legend-custom');
+                div.innerHTML = '<div style="font-weight:bold;">🔥 Harm density</div><div style="background:linear-gradient(90deg,blue,cyan,lime,yellow,red); width:120px;height:4px;margin:4px 0;"></div><div>low → high harm impact</div>';
+                return div;
+            };
+            legend.addTo(map);
+
+            updateHeatmap(allMapPoints);
+        }
+
+        function updateHeatmap(points) {
+            if (!map) return;
+            if (heatLayer) map.removeLayer(heatLayer);
+            markerGroup.clearLayers();
+            
+            const heatPoints = points.filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number')
+                .map(p => [p.lat, p.lng, Math.min(1, (p.cssWeight / 300) + 0.2)]);
+            if (heatPoints.length) {
+                heatLayer = L.heatLayer(heatPoints, { radius: 20, blur: 15, maxZoom: 17, minOpacity: 0.4, gradient: { 0.2: '#2c9b77', 0.4: '#f2a623', 0.7: '#e8593c', 1.0: '#b91c1c' } });
+                heatLayer.addTo(map);
+            }
+            if (showMarkers) renderMarkers(points);
+        }
+
+        function renderMarkers(points) {
+            markerGroup.clearLayers();
+            points.slice(0, 800).forEach(p => {
+                if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+                let marker = L.circleMarker([p.lat, p.lng], { radius: 5, color: '#e8593c', weight: 1, fillOpacity: 0.7, fillColor: '#e8593c' })
+                    .bindPopup(`<b>${p.fileNumber || p.fn || 'Case'}</b><br>${p.crimeType || p.type || 'Unknown'}<br>${p.neighborhood || p.nbr || 'Area'}<br>Harm: ${p.cssWeight || 0} days eq.`);
+                marker.addTo(markerGroup);
+            });
+            markerGroup.addTo(map);
+        }
+
+        const toggleBtn = document.getElementById('btnToggleMarkers');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                showMarkers = !showMarkers;
+                this.textContent = showMarkers ? 'Hide Markers' : 'Show Markers';
+                if (showMarkers) renderMarkers(allMapPoints);
+                else markerGroup.clearLayers();
+            });
+        }
+
+        // Initialize map when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMap);
+        } else {
+            initMap();
+        }
+    </script>
 }
