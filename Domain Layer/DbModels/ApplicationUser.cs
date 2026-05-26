@@ -1,5 +1,4 @@
 ﻿using Domain_Layer.DbModels.Enum;
-using Microsoft.AspNet.Identity.EntityFramework;
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;

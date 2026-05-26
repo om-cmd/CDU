@@ -27,7 +27,14 @@ namespace Analysis_Web.Controllers
         }
 
         [HttpGet]
-        public IActionResult FilterMapPoints(string? fileNumber, string? crimeType, string? neighborhood,string? dateFrom, string? dateTo,string? crimeDateFrom, string? crimeDateTo)
+        public IActionResult FilterMapPoints(
+            string? fileNumber,
+            string? crimeType,
+            string? neighborhood,
+            string? dateFrom,
+            string? dateTo,
+            string? crimeDateFrom,
+            string? crimeDateTo)
         {
             var csvPath = Path.Combine(_env.WebRootPath, "CSV", "Crime_Reports_20260508.csv");
             var svc = new CrimeDataService(_cache, csvPath);
@@ -47,10 +54,12 @@ namespace Analysis_Web.Controllers
                 {
                     lat = (double)r.Latitude!.Value,
                     lng = (double)r.Longitude!.Value,
-                    type = r.CrimeType.ToString(),
+                    crimeType = r.CrimeType.ToString(),
                     fn = r.FileNumber,
                     nbr = r.Neighborhood ?? "",
-                    dt = r.DateOfReport?.ToString("yyyy-MM-dd") ?? ""
+                    dt = r.DateOfReport?.ToString("yyyy-MM-dd") ?? "",
+                    // FIX: include cssWeight so heatmap intensity is preserved after filtering
+                    cssWeight = CrimeDataService.GetCssWeight(r.CrimeType.ToString())
                 });
 
             return Json(new { total = filtered.Count, points });
