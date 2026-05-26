@@ -1,0 +1,103 @@
+﻿@model Core_Layer.ViewModels.RegisterDto
+@{
+    ViewData["Title"] = "Create Internal User";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card shadow-sm border-0 rounded-3">
+            <div class="card-header bg-dark text-white py-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-gear me-2"></i>Create Internal User
+                </h5>
+            </div>
+            <div class="card-body p-4">
+
+                <div class="alert alert-warning py-2 small mb-4">
+                    <i class="bi bi-shield-exclamation me-1"></i>
+                    <strong>Admin Only:</strong> This form allows assigning any role.
+                    Use it to create staff or administrator accounts.
+                </div>
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+
+                <form asp-action="AdminRegister" asp-controller="Authentication" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label fw-semibold">Full Name</label>
+                        <input asp-for="FullName" class="form-control" placeholder="Staff member name" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold">Email</label>
+                        <input asp-for="Email" class="form-control" placeholder="staff@company.com" />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="UserType" class="form-label fw-semibold">Role</label>
+                        <select asp-for="UserType" class="form-select"
+                                asp-items="Html.GetEnumSelectList<Domain_Layer.DbModels.Enum.UserType>()">
+                        </select>
+                        <div class="form-text">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Choose from: User, Manager, Admin, SuperAdmin.
+                        </div>
+                        <span asp-validation-for="UserType" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <input asp-for="Password" type="password" class="form-control"
+                                   placeholder="Min. 8 characters" id="pwdField" />
+                            <button type="button" class="btn btn-outline-secondary"
+                                    onclick="togglePwd('pwdField', this)" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="ConfirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                        <div class="input-group">
+                            <input asp-for="ConfirmPassword" type="password" class="form-control"
+                                   placeholder="Re-enter password" id="confirmField" />
+                            <button type="button" class="btn btn-outline-secondary"
+                                    onclick="togglePwd('confirmField', this)" tabindex="-1">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-dark px-4">
+                            <i class="bi bi-person-plus me-2"></i>Create User
+                        </button>
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary px-4">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function togglePwd(fieldId, btn) {
+            const f = document.getElementById(fieldId);
+            const icon = btn.querySelector('i');
+            f.type = f.type === 'password' ? 'text' : 'password';
+            icon.className = f.type === 'text' ? 'bi bi-eye-slash' : 'bi bi-eye';
+        }
+    </script>
+}

@@ -1,45 +1,38 @@
-﻿using Domain_Layer.DbModels;
+﻿using Domain_Layer.Database;
+using Domain_Layer.DbModels;
 using Domain_Layer.DbModels.Enum;
-using Microsoft.AspNetCore.Identity;
+using Core_Layer.HelperMethod;
 
 namespace Infrastructure.Data
 {
     public static class DbSeeder
     {
-        public static async Task SeedRolesAndAdminAsync(
-            UserManager<ApplicationUser> userManager,
-            RoleManager<IdentityRole> roleManager)
+        public static async Task SeedSuperAdminAsync(AnalysisDbContext context)
         {
-            if (!await roleManager.RoleExistsAsync("SuperAdmin"))
-                await roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+            // Ensure the database is created
+            await context.Database.EnsureCreatedAsync();
 
-            if (!await roleManager.RoleExistsAsync("Admin"))
-                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            // Check if a SuperAdmin already exists (by email or role)
+            bool superAdminExists = context.ApplicationUsers
+                .Any(u => u.Email == "superadmin@crime.com" || u.UserType == UserType.SuperAdmin);
 
-            if (!await roleManager.RoleExistsAsync("User"))
-                await roleManager.CreateAsync(new IdentityRole("User"));
-
-            var superAdmin = await userManager.FindByEmailAsync("superadmin@crime.com");
-
-            if (superAdmin == null)
+            if (!superAdminExists)
             {
-                var user = new ApplicationUser
+                var superAdmin = new ApplicationUser
                 {
+                    FullName = "System Super Admin",
                     UserName = "superadmin",
                     Email = "superadmin@crime.com",
-                    Password = "Admin@123",
-                    FullName = "System Super Admin",
-                    EmailConfirmed = true,
+                    Password = HashPassword.Hash("Admin@123"),
                     UserType = UserType.SuperAdmin,
-                    IsActive = true
+                    IsActive = true,
+                    EmailConfirmedStatus = true,
+                    IsValidated = true,
+                    CreatedAt = DateTime.UtcNow
                 };
 
-                var result = await userManager.CreateAsync(user, "Admin@123");
-
-                if (result.Succeeded)
-                {
-                    await userManager.AddToRoleAsync(user, "SuperAdmin");
-                }
+                context.ApplicationUsers.Add(superAdmin);
+                await context.SaveChangesAsync();
             }
         }
     }

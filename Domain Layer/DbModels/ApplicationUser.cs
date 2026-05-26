@@ -7,12 +7,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain_Layer.DbModels
 {
-    public class ApplicationUser : IdentityUser
+    public class ApplicationUser 
     {
         [Key]
         public int UserAccountId { get; set; }
 
-       
+
         [Required]
         [StringLength(120, ErrorMessage = "Full name cannot exceed 120 characters.")]
         public string FullName { get; set; } = string.Empty;
@@ -22,12 +22,12 @@ namespace Domain_Layer.DbModels
 
         [Required]
         [StringLength(50, ErrorMessage = "Username cannot exceed 50 characters.")]
-        public override string UserName { get; set; } = string.Empty;
+        public  string UserName { get; set; } = string.Empty;
 
         [Required]
         [EmailAddress]
         [StringLength(255, ErrorMessage = "Email cannot exceed 255 characters.")]
-        public override string Email { get; set; } = string.Empty;
+        public  string Email { get; set; } = string.Empty;
 
         [Phone]
         [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
@@ -51,7 +51,7 @@ namespace Domain_Layer.DbModels
         [StringLength(20, ErrorMessage = "Postal code cannot exceed 20 characters.")]
         public string? PostalCode { get; set; }
 
-       
+
         [Required]
         [PasswordPropertyText(true)]
         [StringLength(255, MinimumLength = 6)]
@@ -77,7 +77,7 @@ namespace Domain_Layer.DbModels
         [StringLength(255, ErrorMessage = "Image URL cannot exceed 255 characters.")]
         public string? ImageUrl { get; set; }
 
-       
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public DateTime? UpdatedAt { get; set; }
@@ -89,7 +89,7 @@ namespace Domain_Layer.DbModels
 
         [StringLength(255)]
         public string? DeviceInfo { get; set; }
-     
+
         public bool Deleted { get; set; } = false;
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
