@@ -663,12 +663,11 @@
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <script>
-        // Polyfill for layout scripts that call perfectScrollbar
+        // Polyfill for perfectScrollbar
         if (typeof $.fn.perfectScrollbar === 'undefined') {
         $.fn.perfectScrollbar = function () { return this; };
         }
@@ -687,234 +686,119 @@
         const neighborhoodHarm = @Html.Raw(neighborhoodHarmJson) || [];
         const highestHarmCases = @Html.Raw(highestHarmJson)  || [];
 
-        // ── DEBUG: log how many points we received ──────────────────────────
+        // ── DEBUG ──────────────────────────────────────────────────────────
         console.log('Total map points loaded:', allMapPoints.length);
         if (allMapPoints.length > 0) {
         console.log('Sample map point:', allMapPoints[0]);
         }
 
-        // ── Heatmap intensity helper (BOOSTED for visibility) ────────────────
-        // Uses log scaling so low-weight crimes still appear.
-        const LOG_MAX = Math.log10(1 + 3650); // ≈3.562 (max weight Homicide)
-
+        // ── Heatmap intensity (aggressive boost) ────────────────────────────
+        const LOG_MAX = Math.log10(1 + 3650); // Homicide weight 3650
         function harmToIntensity(cssWeight) {
         const w = (typeof cssWeight === 'number' && cssWeight > 0) ? cssWeight : 5;
-        // log10(1+w) / LOG_MAX  gives range ~0.22 (weight 5) to 1.0 (3650)
-        let rawIntensity = Math.log10(1 + w) / LOG_MAX;
-        // Boost: shift minimum from 0.22 to 0.4, maximum stays 1.0
-        const boosted = 0.4 + rawIntensity * 0.6;
+        let raw = Math.log10(1 + w) / LOG_MAX;          // 0.22 … 1.0
+        let boosted = 0.8 + raw * 0.2;                  // minimum 0.8, maximum 1.0
         return Math.min(1.0, boosted);
         }
 
-        // ── Frequency charts (unchanged) ────────────────────────────────────
+        // ── Charts (unchanged from original) ────────────────────────────────
         if (document.getElementById('yearChart')) {
         new Chart(document.getElementById('yearChart'), {
-        type: 'bar',
-        data: {
-        labels: yearLabels,
-        datasets: [{
-        label: 'Incidents',
-        data: yearValues,
-        backgroundColor: yearValues.map((v, i) =>
-        i === yearValues.length - 1 ? 'rgba(232,89,60,0.9)' : 'rgba(232,89,60,0.55)'),
-        borderRadius: 3
-        }]
-        },
-        options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { grid: { display: false } }, y: { grid: { color: '#f0f0f0' } } }
-        }
+        type: 'bar', data: { labels: yearLabels, datasets: [{ label: 'Incidents', data: yearValues, backgroundColor: yearValues.map((v,i)=> i===yearValues.length-1 ? 'rgba(232,89,60,0.9)' : 'rgba(232,89,60,0.55)'), borderRadius: 3 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { grid: { color: '#f0f0f0' } } } }
         });
         }
-
         if (document.getElementById('hourChart')) {
         new Chart(document.getElementById('hourChart'), {
-        type: 'line',
-        data: {
-        labels: hourLabels,
-        datasets: [{
-        label: 'Incidents',
-        data: hourValues,
-        borderColor: '#e8593c',
-        backgroundColor: 'rgba(232,89,60,0.08)',
-        borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4
-        }]
-        },
-        options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { grid: { display: false }, ticks: { maxRotation: 45 } }, y: { grid: { color: '#f0f0f0' } } }
-        }
+        type: 'line', data: { labels: hourLabels, datasets: [{ label: 'Incidents', data: hourValues, borderColor: '#e8593c', backgroundColor: 'rgba(232,89,60,0.08)', borderWidth: 2, pointRadius: 2, fill: true, tension: 0.4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxRotation: 45 } }, y: { grid: { color: '#f0f0f0' } } } }
         });
         }
-
-        // ── Harm charts ─────────────────────────────────────────────────────
         if (document.getElementById('harmByTypeChart')) {
-        new Chart(document.getElementById('harmByTypeChart'), {
-        type: 'bar',
-        data: {
-        labels: harmLabels,
-        datasets: [{ label: 'Imprisonment Days Eq.', data: harmValues, backgroundColor: '#e8593c', borderRadius: 8 }]
-        },
-        options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: true,
-        plugins: { legend: { position: 'top' } }
+        new Chart(document.getElementById('harmByTypeChart'), { type: 'bar', data: { labels: harmLabels, datasets: [{ label: 'Imprisonment Days Eq.', data: harmValues, backgroundColor: '#e8593c', borderRadius: 8 }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } } });
         }
-        });
-        }
-
         if (document.getElementById('severityDonut')) {
-        new Chart(document.getElementById('severityDonut'), {
-        type: 'doughnut',
-        data: {
-        labels: ['High (≥300)', 'Medium (60-299)', 'Low (<60)'],
-        datasets: [{
-        data: [@Model.HighHarm, @Model.MediumHarm, @Model.LowHarm],
-        backgroundColor: ['#e8593c', '#f2a623', '#2c9b77'],
-        borderWidth: 0
-        }]
-        },
-        options: {
-        cutout: '65%',
-        plugins: {
-        tooltip: {
-        callbacks: {
-        label: (ctx) => `${ctx.raw.toLocaleString()} days eq. (${((ctx.raw / @Model.TotalHarm) * 100).toFixed(1)}%)`
-        }
-        }
-        }
-        }
-        });
+        new Chart(document.getElementById('severityDonut'), { type: 'doughnut', data: { labels: ['High (≥300)', 'Medium (60-299)', 'Low (<60)'], datasets: [{ data: [@Model.HighHarm, @Model.MediumHarm, @Model.LowHarm], backgroundColor: ['#e8593c', '#f2a623', '#2c9b77'], borderWidth: 0 }] }, options: { cutout: '65%', plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.raw.toLocaleString()} days eq. (${((ctx.raw / @Model.TotalHarm) * 100).toFixed(1)}%)` } } } } });
         }
 
-        // ── Time-of-day blocks ───────────────────────────────────────────────
+        // Time blocks
         const timeBlocks = ['00:00 – 06:00', '06:00 – 12:00', '12:00 – 18:00', '18:00 – 00:00'];
         const tbContainer = document.getElementById('timeBlocksContainer');
         if (tbContainer) {
         hourlyHarmPct.forEach((p, idx) => {
         const val = typeof p === 'number' ? p : 0;
-        tbContainer.innerHTML +=
-        `<div class="hour-block">
-        <div class="small text-uppercase text-secondary">${timeBlocks[idx]}</div>
-        <div class="stat-harm-number" style="font-size:1.2rem;">${val}%</div>
-        <div class="progress-harm-bar">
-        <div class="progress-fill" style="width:${val}%;background:#f2a623;"></div>
-        </div>
-        </div>`;
+        tbContainer.innerHTML += `<div class="hour-block"><div class="small text-uppercase text-secondary">${timeBlocks[idx]}</div><div class="stat-harm-number" style="font-size:1.2rem;">${val}%</div><div class="progress-harm-bar"><div class="progress-fill" style="width:${val}%;background:#f2a623;"></div></div></div>`;
         });
         }
 
-        // ── Trend chart (last 12 years) ─────────────────────────────────────
-        const last12Keys   = Object.keys(yearlyHarm).sort().slice(-12);
-        const harmTrend    = last12Keys.map(k => yearlyHarm[k] || 0);
+        // Trend chart
+        const last12Keys = Object.keys(yearlyHarm).sort().slice(-12);
+        const harmTrend = last12Keys.map(k => yearlyHarm[k] || 0);
         const incidentTrend = last12Keys.map(k => yearlyCountsObj[k] || 0);
-
         if (document.getElementById('trendChart')) {
-        new Chart(document.getElementById('trendChart'), {
-        type: 'line',
-        data: {
-        labels: last12Keys,
-        datasets: [
-        { label: 'Crime Harm (days eq.)', data: harmTrend,    borderColor: '#e8593c', yAxisID: 'y',  tension: 0.2, fill: false },
-        { label: 'Incident Count',        data: incidentTrend, borderColor: '#3b82f6', yAxisID: 'y1', tension: 0.2, fill: false }
-        ]
-        },
-        options: {
-        responsive: true,
-        interaction: { mode: 'index' },
-        plugins: {
-        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}` } }
-        },
-        scales: {
-        y:  { title: { display: true, text: 'Harm (Days)' } },
-        y1: { position: 'right', title: { display: true, text: 'Incident count' }, grid: { drawOnChartArea: false } }
-        }
-        }
-        });
+        new Chart(document.getElementById('trendChart'), { type: 'line', data: { labels: last12Keys, datasets: [{ label: 'Crime Harm (days eq.)', data: harmTrend, borderColor: '#e8593c', yAxisID: 'y', tension: 0.2, fill: false }, { label: 'Incident Count', data: incidentTrend, borderColor: '#3b82f6', yAxisID: 'y1', tension: 0.2, fill: false }] }, options: { responsive: true, interaction: { mode: 'index' }, plugins: { tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw.toLocaleString()}` } } }, scales: { y: { title: { display: true, text: 'Harm (Days)' } }, y1: { position: 'right', title: { display: true, text: 'Incident count' }, grid: { drawOnChartArea: false } } } } });
         }
 
-        // ── Highest Harm Cases table ─────────────────────────────────────────
+        // Highest harm cases table
         const highTable = document.querySelector('#highHarmTable tbody');
         if (highTable) {
         if (highestHarmCases.length) {
         highTable.innerHTML = highestHarmCases.map(c => {
         const sev = (c.SeverityLevel || 'Low').toLowerCase();
         const sevClass = sev === 'high' ? 'severity-high' : sev === 'medium' ? 'severity-med' : 'severity-low';
-        return `<tr>
-        <td><strong>${c.CaseId || 'N/A'}</strong></td>
-        <td>${c.CrimeType || 'Unknown'}</td>
-        <td>${c.Location || 'Unknown'}</td>
-        <td>${(c.HarmScore || 0).toLocaleString()}</td>
-        <td><span class="case-badge ${sevClass}">${c.SeverityLevel}</span></td>
-        </tr>`;
+        return `<tr><td><strong>${c.CaseId || 'N/A'}</strong></td><td>${c.CrimeType || 'Unknown'}</td><td>${c.Location || 'Unknown'}</td><td>${(c.HarmScore || 0).toLocaleString()}</td><td><span class="case-badge ${sevClass}">${c.SeverityLevel}</span></td></tr>`;
         }).join('');
         } else {
         highTable.innerHTML = '<tr><td colspan="5" class="text-muted">No extreme harm cases</td></tr>';
         }
         }
 
-        // ── Harm by Neighborhood list ────────────────────────────────────────
+        // Harm by neighborhood list
         const nbrDiv = document.getElementById('neighborhoodHarmList');
         if (nbrDiv) {
         if (neighborhoodHarm.length) {
         const maxHarm = neighborhoodHarm[0].totalHarm || 1;
         nbrDiv.innerHTML = neighborhoodHarm.map(n => {
         const pct = Math.min(100, (n.totalHarm / maxHarm) * 100);
-        return `<div class="d-flex justify-content-between align-items-center mb-2">
-        <span><strong>${n.name || 'Unknown'}</strong></span>
-        <span>${(n.totalHarm || 0).toLocaleString()} days eq.</span>
-        </div>
-        <div class="progress-harm-bar mb-2">
-        <div class="progress-fill" style="width:${pct}%;background:#e8593c;"></div>
-        </div>`;
+        return `<div class="d-flex justify-content-between align-items-center mb-2"><span><strong>${n.name || 'Unknown'}</strong></span><span>${(n.totalHarm || 0).toLocaleString()} days eq.</span></div><div class="progress-harm-bar mb-2"><div class="progress-fill" style="width:${pct}%;background:#e8593c;"></div></div>`;
         }).join('');
         } else {
         nbrDiv.innerHTML = '<div class="text-muted">No harm data by neighborhood</div>';
         }
         }
 
-        // ── Filter controls ──────────────────────────────────────────────────
-        document.getElementById('btnToggleFilter')
-        ?.addEventListener('click', () => document.getElementById('filterPanel')?.classList.toggle('open'));
-
-        document.getElementById('btnApplyFilter')
-        ?.addEventListener('click', applyFilter);
-
-        document.getElementById('btnResetFilter')
-        ?.addEventListener('click', () => {
-        ['fFileNumber', 'fCrimeType', 'fNeighborhood',
-        'fDateFrom', 'fDateTo', 'fCrimeDateFrom', 'fCrimeDateTo'].forEach(id => {
+        // ── Filter controls ────────────────────────────────────────────────
+        document.getElementById('btnToggleFilter')?.addEventListener('click', () => document.getElementById('filterPanel')?.classList.toggle('open'));
+        document.getElementById('btnApplyFilter')?.addEventListener('click', applyFilter);
+        document.getElementById('btnResetFilter')?.addEventListener('click', () => {
+        ['fFileNumber', 'fCrimeType', 'fNeighborhood', 'fDateFrom', 'fDateTo', 'fCrimeDateFrom', 'fCrimeDateTo'].forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
-        el.value = el.tagName === 'SELECT' ? 'All' : '';
+        if (el) el.value = el.tagName === 'SELECT' ? 'All' : '';
         });
         applyFilter();
         });
 
         function applyFilter() {
         const params = new URLSearchParams({
-        fileNumber:    document.getElementById('fFileNumber')?.value    || '',
-        crimeType:     document.getElementById('fCrimeType')?.value     || '',
-        neighborhood:  document.getElementById('fNeighborhood')?.value  || '',
-        dateFrom:      document.getElementById('fDateFrom')?.value      || '',
-        dateTo:        document.getElementById('fDateTo')?.value        || '',
+        fileNumber: document.getElementById('fFileNumber')?.value || '',
+        crimeType: document.getElementById('fCrimeType')?.value || '',
+        neighborhood: document.getElementById('fNeighborhood')?.value || '',
+        dateFrom: document.getElementById('fDateFrom')?.value || '',
+        dateTo: document.getElementById('fDateTo')?.value || '',
         crimeDateFrom: document.getElementById('fCrimeDateFrom')?.value || '',
-        crimeDateTo:   document.getElementById('fCrimeDateTo')?.value   || '',
+        crimeDateTo: document.getElementById('fCrimeDateTo')?.value || ''
         });
-
         fetch('@Url.Action("FilterMapPoints", "Home")?' + params)
         .then(r => r.json())
         .then(data => {
-        document.getElementById('filterResultsBar').innerHTML =
-        `Filtered: <strong>${data.total.toLocaleString()}</strong> records &nbsp;·&nbsp; ${data.points.length} on map`;
+        document.getElementById('filterResultsBar').innerHTML = `Filtered: <strong>${data.total.toLocaleString()}</strong> records &nbsp;·&nbsp; ${data.points.length} on map`;
         document.getElementById('statTotal').textContent = data.total.toLocaleString();
         updateHeatmap(data.points);
         })
         .catch(err => console.warn('Filter error:', err));
         }
 
-        // ── Leaflet map (with improved heat visibility) ──────────────────────
+        // ── Leaflet map with CORRECT property names (Lat, Lng) ─────────────
         let map, heatLayer;
         let markerGroup = null;
         let showMarkers = false;
@@ -922,63 +806,52 @@
         function initMap() {
         const mapEl = document.getElementById('map');
         if (!mapEl) return;
-
         map = L.map('map').setView([42.373, -71.109], 14);
-
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &amp; CartoDB',
-        subdomains: 'abcd',
-        maxZoom: 18
+        subdomains: 'abcd', maxZoom: 18
         }).addTo(map);
-
         markerGroup = L.layerGroup().addTo(map);
-
-        // Legend
         const legend = L.control({ position: 'bottomleft' });
         legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'map-legend-custom');
-        div.innerHTML =
-        '<div style="font-weight:bold;">🔥 Harm density</div>' +
-        '<div style="background:linear-gradient(90deg,blue,cyan,lime,yellow,red);width:120px;height:4px;margin:4px 0;"></div>' +
-        '<div>low → high harm impact</div>';
+        div.innerHTML = '<div style="font-weight:bold;">🔥 Harm density</div><div style="background:linear-gradient(90deg,blue,cyan,lime,yellow,red);width:120px;height:4px;margin:4px 0;"></div><div>low → high harm impact</div>';
         return div;
         };
         legend.addTo(map);
-
         updateHeatmap(allMapPoints);
         }
 
         function updateHeatmap(points) {
         if (!map) return;
-
         if (heatLayer) map.removeLayer(heatLayer);
         if (markerGroup) markerGroup.clearLayers();
 
+        // Use uppercase Lat/Lng (as in your model)
         const heatPoints = points
-        .filter(p => p && typeof p.lat === 'number' && typeof p.lng === 'number')
-        .map(p => [p.lat, p.lng, harmToIntensity(p.cssWeight)]);
+        .filter(p => p && typeof p.Lat === 'number' && typeof p.Lng === 'number')
+        .map(p => [p.Lat, p.Lng, harmToIntensity(p.CssWeight)]);
 
         console.log(`Generating heatmap with ${heatPoints.length} weighted points`);
         if (heatPoints.length === 0) {
-        console.warn('No valid points with lat/lng found.');
+        console.warn('No valid points with Lat/Lng found.');
         return;
         }
 
+        const intensities = heatPoints.map(p => p[2]);
+        console.log(`Intensity range: min=${Math.min(...intensities).toFixed(3)}, max=${Math.max(...intensities).toFixed(3)}`);
+
         heatLayer = L.heatLayer(heatPoints, {
-        radius:     28,      // wider spread
-        blur:       20,      // smoother
-        maxZoom:    17,
-        minOpacity: 0.25,    // lower threshold for low‑intensity points
-        gradient: {
-        0.0: '#313695',
-        0.3: '#4575b4',
-        0.5: '#74add1',
-        0.7: '#fee090',
-        0.85: '#f46d43',
-        1.0: '#a50026'
-        }
-        });
-        heatLayer.addTo(map);
+        radius: 40, blur: 30, maxZoom: 17, minOpacity: 0.1,
+        gradient: { 0.0: '#313695', 0.3: '#4575b4', 0.5: '#74add1', 0.7: '#fee090', 0.85: '#f46d43', 1.0: '#a50026' }
+        }).addTo(map);
+
+        // Auto-zoom to fit all points
+        try {
+        const bounds = L.latLngBounds(heatPoints.map(p => [p[0], p[1]]));
+        map.fitBounds(bounds);
+        console.log('Map zoomed to points');
+        } catch(e) { console.warn('Could not fit bounds', e); }
 
         if (showMarkers) renderMarkers(points);
         }
@@ -986,41 +859,26 @@
         function renderMarkers(points) {
         if (!markerGroup) return;
         markerGroup.clearLayers();
-
         points.slice(0, 800).forEach(p => {
-        if (!p || typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
-        const w = p.cssWeight || 0;
+        if (!p || typeof p.Lat !== 'number' && typeof p.lat !== 'number') return;
+        const lat = p.Lat ?? p.lat;
+        const lng = p.Lng ?? p.lng;
+        const w = p.CssWeight || 0;
         const colour = w >= 300 ? '#b91c1c' : w >= 60 ? '#f2a623' : '#2c9b77';
-        L.circleMarker([p.lat, p.lng], {
-        radius: 5, color: colour, weight: 1,
-        fillOpacity: 0.75, fillColor: colour
-        })
-        .bindPopup(
-        `<b>${p.fileNumber || p.fn || 'Case'}</b><br>` +
-        `${p.crimeType || p.type || 'Unknown'}<br>` +
-        `${p.neighborhood || p.nbr || 'Area'}<br>` +
-        `Harm: <strong>${w.toLocaleString()}</strong> days eq.`
-        )
+        L.circleMarker([lat, lng], { radius: 5, color: colour, weight: 1, fillOpacity: 0.75, fillColor: colour })
+        .bindPopup(`<b>${p.FileNumber || p.fn || 'Case'}</b><br>${p.CrimeType || p.type || 'Unknown'}<br>${p.Neighborhood || p.nbr || 'Area'}<br>Harm: <strong>${w.toLocaleString()}</strong> days eq.`)
         .addTo(markerGroup);
         });
         }
 
-        document.getElementById('btnToggleMarkers')
-        ?.addEventListener('click', function () {
+        document.getElementById('btnToggleMarkers')?.addEventListener('click', function () {
         showMarkers = !showMarkers;
         this.textContent = showMarkers ? '📍 Hide Markers' : '📍 Show Markers';
-        if (showMarkers) {
-        renderMarkers(allMapPoints);
-        } else {
-        if (markerGroup) markerGroup.clearLayers();
-        }
+        if (showMarkers) renderMarkers(allMapPoints);
+        else if (markerGroup) markerGroup.clearLayers();
         });
 
-        // Start the map when the DOM is ready
-        if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMap);
-        } else {
-        initMap();
-        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMap);
+        else initMap();
     </script>
 }
