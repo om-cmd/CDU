@@ -1,3 +1,4 @@
+using Analysis_Web.Services;
 using Business_Layer;
 using Domain_Layer.Database;
 using Infrastructure.Data;
@@ -10,7 +11,7 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+builder.Services.AddScoped<ICrimeReportInterface, CrimeReportService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>

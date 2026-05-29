@@ -1,0 +1,1844 @@
+﻿@using Domain_Layer.DbModels.Enum
+@{
+    ViewData["Title"] = "Crime Reports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=Lato:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<style>
+ 
+    *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Lato', sans-serif;
+        background: var(--surface);
+        color: var(--ink);
+    }
+
+        background: var(--ink);
+        border-bottom: 3px solid var(--gold);
+        padding: 1.25rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+        border-radius: var(--r-lg);
+    }
+
+    .pg-head-left {
+        display: flex;
+        align-items: center;
+        gap: .9rem;
+    }
+
+    .pg-shield {
+        width: 44px;
+        height: 44px;
+        background: var(--gold);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink);
+        flex-shrink: 0;
+    }
+
+    .pg-head h1 {
+        font-family: 'Syne', sans-serif;
+        font-weight: 800;
+        font-size: 1.3rem;
+        color: #fff;
+        letter-spacing: .2px;
+        line-height: 1.1;
+    }
+
+    .pg-head .sub {
+        font-size: .73rem;
+        color: #8fa3bb;
+        font-weight: 500;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        margin-top: .15rem;
+    }
+
+    .btn-new {
+        background: var(--gold);
+        color: var(--ink);
+        border: none;
+        border-radius: var(--r);
+        padding: .55rem 1.2rem;
+        font-family: 'Syne', sans-serif;
+        font-size: .85rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        transition: background var(--transit), transform var(--transit);
+    }
+
+        .btn-new:hover {
+            background: #b8952e;
+            transform: translateY(-1px);
+        }
+
+    /* ═══════════════════════════════════════════════
+       STAT STRIP
+    ═══════════════════════════════════════════════ */
+    .stat-strip {
+        display: flex;
+        gap: .75rem;
+        margin-bottom: 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .stat-chip {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: .7rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        box-shadow: var(--sh);
+        flex: 1;
+        min-width: 130px;
+    }
+
+        .stat-chip .dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .stat-chip .num {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .stat-chip .lbl {
+            font-size: .68rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            margin-top: .1rem;
+        }
+
+    /* ═══════════════════════════════════════════════
+       FILTER BAR
+    ═══════════════════════════════════════════════ */
+    .filter-bar {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        padding: .9rem 1.1rem;
+        margin-bottom: 1.1rem;
+        box-shadow: var(--sh);
+        display: flex;
+        gap: .65rem;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .fg {
+        display: flex;
+        flex-direction: column;
+        gap: .2rem;
+    }
+
+        .fg label {
+            font-size: .68rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .fg input, .fg select {
+            border: 1.5px solid var(--line);
+            border-radius: var(--r);
+            padding: .42rem .7rem;
+            font-size: .86rem;
+            color: var(--ink);
+            background: var(--white);
+            font-family: 'Lato', sans-serif;
+            transition: border-color var(--transit), box-shadow var(--transit);
+        }
+
+            .fg input:focus, .fg select:focus {
+                outline: none;
+                border-color: var(--blue);
+                box-shadow: 0 0 0 3px rgba(18,70,160,.1);
+            }
+
+        .fg.search {
+            flex: 1;
+            min-width: 200px;
+        }
+
+            .fg.search input {
+                width: 100%;
+            }
+
+    .filter-actions {
+        display: flex;
+        gap: .4rem;
+        align-self: flex-end;
+    }
+
+    .btn-filter {
+        background: var(--blue);
+        color: #fff;
+        border: none;
+        border-radius: var(--r);
+        padding: .44rem .95rem;
+        font-size: .84rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: 'Lato', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        transition: background var(--transit);
+    }
+
+        .btn-filter:hover {
+            background: #0d3580;
+        }
+
+    .btn-clear {
+        background: var(--surface);
+        color: var(--ink-3);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: .42rem .8rem;
+        font-size: .84rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Lato', sans-serif;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        transition: background var(--transit);
+    }
+
+        .btn-clear:hover {
+            background: var(--line);
+            color: var(--ink);
+        }
+
+    /* ═══════════════════════════════════════════════
+       TABLE CARD
+    ═══════════════════════════════════════════════ */
+    .tbl-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh);
+        overflow: hidden;
+    }
+
+    .tbl-toolbar {
+        padding: .7rem 1.1rem;
+        border-bottom: 1px solid var(--line);
+        background: #f9fafc;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        flex-wrap: wrap;
+    }
+
+    .tbl-info {
+        font-size: .78rem;
+        color: var(--muted);
+        font-weight: 600;
+    }
+
+    .bulk-actions {
+        display: none;
+        gap: .4rem;
+        align-items: center;
+        animation: fadeIn .15s;
+    }
+
+        .bulk-actions.show {
+            display: flex;
+        }
+
+    .btn-bulk-del {
+        background: var(--red);
+        color: #fff;
+        border: none;
+        border-radius: var(--r);
+        padding: .33rem .75rem;
+        font-size: .78rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: 'Lato', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+    }
+
+    .per-page-wrap {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+        .per-page-wrap label {
+            font-size: .72rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .per-page-wrap select {
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: .28rem .5rem;
+            font-size: .8rem;
+            color: var(--ink);
+        }
+
+    .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .86rem;
+    }
+
+        .tbl thead th {
+            background: var(--ink);
+            color: #fff;
+            padding: .68rem .9rem;
+            text-align: left;
+            font-size: .68rem;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+            .tbl thead th a {
+                color: #fff;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: .25rem;
+            }
+
+                .tbl thead th a:hover {
+                    color: var(--gold);
+                }
+
+            .tbl thead th.chk {
+                width: 38px;
+            }
+
+        .tbl tbody tr {
+            border-bottom: 1px solid var(--line);
+            transition: background var(--transit);
+            cursor: pointer;
+        }
+
+            .tbl tbody tr:hover {
+                background: var(--blue-lt);
+            }
+
+            .tbl tbody tr:last-child {
+                border-bottom: none;
+            }
+
+        .tbl td {
+            padding: .6rem .9rem;
+            color: var(--ink-2);
+            vertical-align: middle;
+        }
+
+            .tbl td.mono {
+                font-family: 'DM Mono', monospace;
+                font-size: .8rem;
+                color: var(--blue);
+                font-weight: 500;
+                letter-spacing: .3px;
+            }
+
+            .tbl td.actions {
+                white-space: nowrap;
+            }
+
+    .cb {
+        width: 15px;
+        height: 15px;
+        cursor: pointer;
+        accent-color: var(--blue);
+    }
+
+    /* Crime type pills */
+    .pill {
+        display: inline-block;
+        padding: .18rem .5rem;
+        border-radius: 20px;
+        font-size: .68rem;
+        font-weight: 700;
+        letter-spacing: .3px;
+        text-transform: uppercase;
+        font-family: 'Syne', sans-serif;
+    }
+
+    .pill-Assault {
+        background: #fdecea;
+        color: #c0392b;
+    }
+
+    .pill-Theft {
+        background: #fff3e0;
+        color: #c97020;
+    }
+
+    .pill-Burglary {
+        background: #fce4ec;
+        color: #880e4f;
+    }
+
+    .pill-Fraud {
+        background: var(--green-lt);
+        color: var(--green);
+    }
+
+    .pill-DrugOffense {
+        background: var(--blue-lt);
+        color: var(--blue);
+    }
+
+    .pill-Vandalism {
+        background: #f3e5f5;
+        color: #6a1b9a;
+    }
+
+    .pill-Murder {
+        background: #c0392b;
+        color: #fff;
+    }
+
+    .pill-Robbery {
+        background: #ffebee;
+        color: #b71c1c;
+    }
+
+    .pill-SexualOffense {
+        background: #fce4ec;
+        color: #ad1457;
+    }
+
+    .pill-default {
+        background: #eceff1;
+        color: #37474f;
+    }
+
+    /* Row action buttons */
+    .act-btn {
+        background: none;
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: var(--ink-3);
+        transition: all var(--transit);
+        margin-left: 3px;
+    }
+
+        .act-btn:hover.view {
+            background: var(--blue-lt);
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+
+        .act-btn:hover.edit {
+            background: var(--amber-lt);
+            border-color: var(--amber);
+            color: var(--amber);
+        }
+
+        .act-btn:hover.del {
+            background: var(--red-lt);
+            border-color: var(--red);
+            color: var(--red);
+        }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: var(--muted);
+    }
+
+        .empty-state .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: .75rem;
+            opacity: .4;
+        }
+
+        .empty-state h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.05rem;
+            color: var(--ink-2);
+            margin-bottom: .3rem;
+        }
+
+        .empty-state p {
+            font-size: .86rem;
+        }
+
+    /* Pagination */
+    .pager {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: .7rem 1.1rem;
+        border-top: 1px solid var(--line);
+        background: #f9fafc;
+        gap: .5rem;
+        flex-wrap: wrap;
+    }
+
+        .pager .pg-info {
+            font-size: .78rem;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .pager .pg-links {
+            display: flex;
+            gap: .25rem;
+        }
+
+    .pg-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: var(--r);
+        font-size: .8rem;
+        font-weight: 700;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--white);
+        transition: all var(--transit);
+        cursor: pointer;
+    }
+
+        .pg-btn:hover {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        .pg-btn.active {
+            background: var(--blue);
+            color: #fff;
+            border-color: var(--blue);
+        }
+
+        .pg-btn.disabled {
+            color: #ccc;
+            pointer-events: none;
+        }
+
+    /* ═══════════════════════════════════════════════
+       SLIDE DRAWER (Create / Edit / View)
+    ═══════════════════════════════════════════════ */
+    .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(11,22,36,.45);
+        z-index: 900;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .25s, visibility .25s;
+        backdrop-filter: blur(2px);
+    }
+
+        .drawer-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(560px, 100vw);
+        background: var(--white);
+        z-index: 901;
+        transform: translateX(100%);
+        transition: transform .28s cubic-bezier(.4,0,.2,1);
+        display: flex;
+        flex-direction: column;
+        box-shadow: var(--sh-lg);
+    }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+    .drawer-head {
+        background: var(--ink);
+        border-bottom: 3px solid var(--gold);
+        padding: 1.1rem 1.4rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+
+        .drawer-head h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: .3px;
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+        }
+
+    .drawer-close {
+        background: rgba(255,255,255,.1);
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: var(--r);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        transition: background var(--transit);
+    }
+
+        .drawer-close:hover {
+            background: rgba(255,255,255,.25);
+        }
+
+    .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.3rem 1.4rem;
+    }
+
+    .drawer-foot {
+        border-top: 1px solid var(--line);
+        padding: .85rem 1.4rem;
+        background: #f9fafc;
+        display: flex;
+        gap: .5rem;
+        flex-shrink: 0;
+    }
+
+    /* Drawer sections */
+    .drw-section {
+        margin-bottom: 1.1rem;
+    }
+
+    .drw-section-title {
+        font-size: .67rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .8px;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: .4rem;
+        margin-bottom: .85rem;
+        display: flex;
+        align-items: center;
+        gap: .35rem;
+    }
+
+    .drw-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: .8rem 1rem;
+    }
+
+        .drw-grid .full {
+            grid-column: 1 / -1;
+        }
+
+    .fg-drw {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+    }
+
+        .fg-drw label {
+            font-size: .69rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+            .fg-drw label .req {
+                color: var(--red);
+            }
+
+        .fg-drw input, .fg-drw select, .fg-drw textarea {
+            border: 1.5px solid var(--line);
+            border-radius: var(--r);
+            padding: .46rem .75rem;
+            font-size: .875rem;
+            color: var(--ink);
+            background: var(--white);
+            font-family: 'Lato', sans-serif;
+            transition: border-color var(--transit), box-shadow var(--transit);
+            width: 100%;
+        }
+
+            .fg-drw input:focus, .fg-drw select:focus, .fg-drw textarea:focus {
+                outline: none;
+                border-color: var(--blue);
+                box-shadow: 0 0 0 3px rgba(18,70,160,.1);
+            }
+
+            .fg-drw input.err, .fg-drw select.err {
+                border-color: var(--red);
+            }
+
+        .fg-drw .field-err {
+            font-size: .72rem;
+            color: var(--red);
+            font-weight: 600;
+            margin-top: .1rem;
+            display: none;
+        }
+
+            .fg-drw .field-err.show {
+                display: block;
+            }
+
+        .fg-drw .hint {
+            font-size: .69rem;
+            color: var(--muted);
+            margin-top: .15rem;
+        }
+
+    /* Drawer buttons */
+    .btn-save {
+        background: var(--blue);
+        color: #fff;
+        border: none;
+        border-radius: var(--r);
+        padding: .52rem 1.3rem;
+        font-size: .875rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: 'Syne', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        transition: background var(--transit), transform var(--transit);
+    }
+
+        .btn-save:hover {
+            background: #0d3580;
+            transform: translateY(-1px);
+        }
+
+        .btn-save:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+    .btn-cancel-drw {
+        background: none;
+        color: var(--ink-3);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: .5rem 1rem;
+        font-size: .875rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Lato', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        transition: background var(--transit);
+    }
+
+        .btn-cancel-drw:hover {
+            background: var(--surface);
+        }
+
+    /* View-mode detail rows */
+    .detail-dl {
+        display: grid;
+        grid-template-columns: 130px 1fr;
+        row-gap: 0;
+    }
+
+    .detail-dt {
+        font-size: .69rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        padding: .52rem 0;
+        border-bottom: 1px solid #f0f3f8;
+    }
+
+    .detail-dd {
+        font-size: .875rem;
+        color: var(--ink);
+        font-weight: 500;
+        padding: .52rem 0 .52rem .75rem;
+        border-bottom: 1px solid #f0f3f8;
+    }
+
+        .detail-dd.mono {
+            font-family: 'DM Mono', monospace;
+            font-size: .82rem;
+            color: var(--blue);
+            font-weight: 500;
+        }
+
+        .detail-dd.empty {
+            color: #bbb;
+            font-style: italic;
+        }
+
+    /* ═══════════════════════════════════════════════
+       DELETE MODAL
+    ═══════════════════════════════════════════════ */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(11,22,36,.55);
+        z-index: 950;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s, visibility .2s;
+    }
+
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    .modal {
+        background: var(--white);
+        border-radius: var(--r-lg);
+        box-shadow: var(--sh-lg);
+        width: min(440px, 100%);
+        overflow: hidden;
+        transform: scale(.95) translateY(8px);
+        transition: transform .2s;
+    }
+
+    .modal-overlay.open .modal {
+        transform: scale(1) translateY(0);
+    }
+
+    .modal-head {
+        background: linear-gradient(135deg,#7b1e18,#a93226);
+        border-bottom: 3px solid var(--gold);
+        padding: 1rem 1.3rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+    }
+
+        .modal-head .del-icon {
+            background: rgba(255,255,255,.15);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .modal-head h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: .15rem;
+        }
+
+        .modal-head p {
+            font-size: .75rem;
+            color: #f5b7b1;
+        }
+
+    .modal-body {
+        padding: 1.1rem 1.3rem;
+    }
+
+    .modal-warn {
+        background: var(--red-lt);
+        border-left: 4px solid var(--red);
+        border-radius: var(--r);
+        padding: .7rem .9rem;
+        font-size: .84rem;
+        color: #7b1e18;
+        margin-bottom: .9rem;
+    }
+
+    .modal-record {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: .75rem .9rem;
+        font-size: .84rem;
+    }
+
+        .modal-record .mr-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--line);
+            padding: .35rem 0;
+        }
+
+            .modal-record .mr-row:last-child {
+                border-bottom: none;
+            }
+
+        .modal-record .mr-key {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .modal-record .mr-val {
+            font-size: .82rem;
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+            .modal-record .mr-val.mono {
+                font-family: 'DM Mono', monospace;
+                color: var(--blue);
+            }
+
+    .modal-foot {
+        padding: .85rem 1.3rem;
+        border-top: 1px solid var(--line);
+        display: flex;
+        gap: .5rem;
+        justify-content: flex-end;
+    }
+
+    .btn-confirm-del {
+        background: var(--red);
+        color: #fff;
+        border: none;
+        border-radius: var(--r);
+        padding: .5rem 1.1rem;
+        font-size: .86rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: 'Syne', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        transition: background var(--transit);
+    }
+
+        .btn-confirm-del:hover {
+            background: #a93226;
+        }
+
+        .btn-confirm-del:disabled {
+            opacity: .6;
+            cursor: not-allowed;
+        }
+
+    /* ═══════════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════════ */
+    .toast-wrap {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: .5rem;
+        pointer-events: none;
+    }
+
+    .toast {
+        background: var(--ink);
+        color: #fff;
+        border-radius: var(--r);
+        padding: .7rem 1rem;
+        font-size: .84rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        box-shadow: var(--sh-lg);
+        min-width: 240px;
+        animation: toastIn .25s ease, toastOut .3s ease 2.7s forwards;
+        pointer-events: auto;
+    }
+
+        .toast.success {
+            border-left: 4px solid var(--green);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--red);
+        }
+
+    @@keyframes toastIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes toastOut {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Loading spinner inside button */
+    .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255,255,255,.35);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin .6s linear infinite;
+        flex-shrink: 0;
+    }
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    @@media(max-width:640px) {
+        .pg-head {
+            padding: 1rem 1.1rem;
+        }
+
+        .stat-strip {
+            display: none;
+        }
+
+        .filter-bar {
+            padding: .75rem;
+        }
+
+        .tbl-card {
+            border-radius: var(--r);
+        }
+    }
+</style>
+
+<div class="pg-head">
+    <div class="pg-head-left">
+        <div class="pg-shield">
+            <svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" />
+            </svg>
+        </div>
+        <div>
+            <h1>Crime Reports</h1>
+            <div class="sub">Australian Crime Analysis System · <span id="headCount">—</span> records</div>
+        </div>
+    </div>
+    <button class="btn-new" onclick="openCreate()">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
+        New Report
+    </button>
+</div>
+
+
+<div class="stat-strip">
+    <div class="stat-chip">
+        <div class="dot" style="background:#e8edf7;">📋</div>
+        <div><div class="num" id="statTotal">—</div><div class="lbl">Total Reports</div></div>
+    </div>
+    <div class="stat-chip">
+        <div class="dot" style="background:var(--blue-lt);">📅</div>
+        <div><div class="num" id="statYear">—</div><div class="lbl">This Year</div></div>
+    </div>
+    <div class="stat-chip">
+        <div class="dot" style="background:var(--gold-lt);">🗓</div>
+        <div><div class="num" id="statMonth">—</div><div class="lbl">This Month</div></div>
+    </div>
+    <div class="stat-chip">
+        <div class="dot" style="background:var(--red-lt);">⚠️</div>
+        <div><div class="num" id="statType">—</div><div class="lbl">Top Crime Type</div></div>
+    </div>
+</div>
+
+
+<div class="filter-bar">
+    <div class="fg search">
+        <label>Search</label>
+        <input type="text" id="fSearch" placeholder="File no., suburb, location…" />
+    </div>
+    <div class="fg">
+        <label>Crime Type</label>
+        <select id="fType">
+            <option value="">All Types</option>
+        </select>
+    </div>
+    <div class="fg">
+        <label>Year</label>
+        <select id="fYear">
+            <option value="">All Years</option>
+        </select>
+    </div>
+    <div class="fg">
+        <label>Sort By</label>
+        <select id="fSort">
+            <option value="DateOfReport">Date Reported</option>
+            <option value="FileNumber">File Number</option>
+            <option value="CrimeType">Crime Type</option>
+            <option value="Neighborhood">Neighbourhood</option>
+            <option value="ImportedAt">Imported At</option>
+        </select>
+    </div>
+    <div class="fg">
+        <label>Order</label>
+        <select id="fAsc">
+            <option value="false">Newest First</option>
+            <option value="true">Oldest First</option>
+        </select>
+    </div>
+    <div class="filter-actions">
+        <button class="btn-filter" onclick="loadPage(1)">
+            <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z" /></svg>
+            Filter
+        </button>
+        <a class="btn-clear" onclick="clearFilters()">Clear</a>
+    </div>
+</div>
+
+
+<div class="tbl-card">
+    <div class="tbl-toolbar">
+        <div style="display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;">
+            <span class="tbl-info" id="resultInfo">Loading…</span>
+            <div class="bulk-actions" id="bulkBar">
+                <span id="bulkCount" style="font-size:.78rem; font-weight:700; color:var(--ink-3);"></span>
+                <button class="btn-bulk-del" onclick="bulkDelete()">
+                    <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
+                    Delete Selected
+                </button>
+            </div>
+        </div>
+        <div class="per-page-wrap">
+            <label>Per page</label>
+            <select id="perPage" onchange="loadPage(1)">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+        <table class="tbl">
+            <thead>
+                <tr>
+                    <th class="chk"><input type="checkbox" class="cb" id="selAll" /></th>
+                    <th>File No.</th>
+                    <th>Date Reported</th>
+                    <th>Crime Date/Time</th>
+                    <th>Crime Type</th>
+                    <th>Neighbourhood</th>
+                    <th>Location</th>
+                    <th>Area</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tblBody">
+                <tr><td colspan="9" style="text-align:center; padding:2.5rem; color:var(--muted); font-size:.88rem;">Loading records…</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pager" id="pagerRow" style="display:none;">
+        <span class="pg-info" id="pgInfo"></span>
+        <div class="pg-links" id="pgLinks"></div>
+    </div>
+</div>
+
+
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+    <div class="drawer-head">
+        <h2 id="drawerTitle">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.072.56C6.157.265 7.31 0 8 0s1.843.265 2.928.56c1.11.3 2.229.655 2.887.87a1.54 1.54 0 0 1 1.044 1.262c.596 4.477-.787 7.795-2.465 9.99a11.775 11.775 0 0 1-2.517 2.453 7.159 7.159 0 0 1-1.048.625c-.28.132-.581.24-.829.24s-.548-.108-.829-.24a7.158 7.158 0 0 1-1.048-.625 11.777 11.777 0 0 1-2.517-2.453C1.928 10.487.545 7.169 1.141 2.692A1.54 1.54 0 0 1 2.185 1.43 62.456 62.456 0 0 1 5.072.56z" /></svg>
+            <span id="drawerTitleText">New Report</span>
+        </h2>
+        <button class="drawer-close" onclick="closeDrawer()" aria-label="Close">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" /></svg>
+        </button>
+    </div>
+
+    <!-- VIEW MODE -->
+    <div class="drawer-body" id="viewBody" style="display:none;">
+        <div id="viewContent"></div>
+    </div>
+
+    <!-- FORM MODE -->
+    <div class="drawer-body" id="formBody">
+        <input type="hidden" id="frmId" value="0" />
+        <div class="drw-section">
+            <div class="drw-section-title">
+                <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5z" /></svg>
+                Case Identification
+            </div>
+            <div class="drw-grid">
+                <div class="fg-drw">
+                    <label>File Number <span class="req">*</span></label>
+                    <input type="text" id="frmFileNumber" placeholder="e.g. CR-2024-00001" maxlength="50" />
+                    <span class="field-err" id="errFileNumber">Required</span>
+                </div>
+                <div class="fg-drw">
+                    <label>Crime Type <span class="req">*</span></label>
+                    <select id="frmCrimeType">
+                        <option value="">— Select —</option>
+                    </select>
+                    <span class="field-err" id="errCrimeType">Required</span>
+                </div>
+                <div class="fg-drw">
+                    <label>Date of Report</label>
+                    <input type="date" id="frmDateOfReport" />
+                </div>
+                <div class="fg-drw">
+                    <label>Crime Date &amp; Time</label>
+                    <input type="datetime-local" id="frmCrimeDateTime" />
+                </div>
+                <div class="fg-drw full">
+                    <label>Raw Date/Time String</label>
+                    <input type="text" id="frmCrimeDateTimeRaw" placeholder="Original unparsed value (optional)" maxlength="100" />
+                </div>
+            </div>
+        </div>
+
+        <div class="drw-section">
+            <div class="drw-section-title">
+                <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg>
+                Location Details
+            </div>
+            <div class="drw-grid">
+                <div class="fg-drw full">
+                    <label>Street Address / Location</label>
+                    <input type="text" id="frmLocation" placeholder="e.g. 42 King Street, Melbourne VIC 3000" maxlength="255" />
+                </div>
+                <div class="fg-drw">
+                    <label>Neighbourhood / Suburb</label>
+                    <input type="text" id="frmNeighborhood" placeholder="e.g. Fitzroy" maxlength="100" />
+                </div>
+                <div class="fg-drw">
+                    <label>Reporting Area / Beat</label>
+                    <input type="text" id="frmReportingArea" placeholder="e.g. AREA-07" maxlength="20" />
+                </div>
+                <div class="fg-drw">
+                    <label>Latitude</label>
+                    <input type="number" id="frmLatitude" step="0.0000001" placeholder="-33.8688197" min="-90" max="90" />
+                    <span class="hint">Decimal degrees (−90 to 90)</span>
+                </div>
+                <div class="fg-drw">
+                    <label>Longitude</label>
+                    <input type="number" id="frmLongitude" step="0.0000001" placeholder="151.2092955" min="-180" max="180" />
+                    <span class="hint">Decimal degrees (−180 to 180)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="drawer-foot" id="formFoot">
+        <button class="btn-save" id="btnSave" onclick="saveReport()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z" /></svg>
+            Save Report
+        </button>
+        <button class="btn-cancel-drw" onclick="closeDrawer()">Cancel</button>
+    </div>
+    <div class="drawer-foot" id="viewFoot" style="display:none;">
+        <button class="btn-save" id="btnEditSwitch" onclick="switchToEdit()">
+            <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z" /></svg>
+            Edit This Report
+        </button>
+        <button class="btn-cancel-drw" onclick="closeDrawer()">Close</button>
+    </div>
+</div>
+
+
+<div class="modal-overlay" id="delModal" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-head">
+            <div class="del-icon">
+                <svg width="20" height="20" fill="white" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
+            </div>
+            <div>
+                <h3>Confirm Deletion</h3>
+                <p id="delSubtitle">This action cannot be undone.</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="modal-warn">⚠ This record will be permanently removed from the database.</div>
+            <div class="modal-record" id="delRecord"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-cancel-drw" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn-confirm-del" id="btnConfirmDel" onclick="confirmDelete()">
+                <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /></svg>
+                Delete Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+════════════════════════════════════════════ -->
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // ─── Config ──────────────────────────────────────────────────────────────────
+        const BASE        = '@Url.Action("Index", "CrimeReport")'.replace('/Index','');
+        const URLS = {
+          list:   '@Url.Action("Index", "CrimeReport")',
+          get:    (id) => `${BASE}/Details/${id}`,
+          create: '@Url.Action("Create", "CrimeReport")',
+          edit:   (id) => `${BASE}/Edit/${id}`,
+          del:    (id) => `${BASE}/Delete/${id}`,
+          stats:  '@Url.Action("Dashboard", "CrimeReport")',
+          bulk:   '@Url.Action("BulkDelete", "CrimeReport")',
+        };
+
+        const CRIME_TYPES = @Html.Raw(
+        "[" + string.Join(",",
+                    Enum.GetValues<CrimeType>().Select(e => $"\"{e}\"")
+                ) + "]"
+            );
+
+        // ─── State ───────────────────────────────────────────────────────────────────
+        let state = { page: 1, pageSize: 20, search:'', crimeType:'', year:'', sortBy:'DateOfReport', asc:'false' };
+        let deleteTarget = null;
+        let viewRecord   = null;
+        let isEditMode   = false;
+
+        // ─── Init ────────────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+          populateEnums();
+          populateYears();
+          loadPage(1);
+          loadStats();
+
+          document.getElementById('selAll').addEventListener('change', e => {
+            document.querySelectorAll('.row-cb').forEach(cb => cb.checked = e.target.checked);
+            updateBulkBar();
+          });
+          document.getElementById('fSearch').addEventListener('keydown', e => { if(e.key==='Enter') loadPage(1); });
+          document.getElementById('perPage').addEventListener('change', () => loadPage(1));
+
+          document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') { closeDrawer(); closeDeleteModal(); }
+          });
+        });
+
+        function populateEnums() {
+          const sel = document.getElementById('frmCrimeType');
+          const flt = document.getElementById('fType');
+          CRIME_TYPES.forEach(ct => {
+            sel.add(new Option(ct, ct));
+            flt.add(new Option(ct, ct));
+          });
+        }
+
+        function populateYears() {
+          const sel = document.getElementById('fYear');
+          const yr  = new Date().getFullYear();
+          for (let y = yr; y >= yr - 10; y--) sel.add(new Option(y, y));
+        }
+
+        // ─── Load Table ──────────────────────────────────────────────────────────────
+        async function loadPage(page) {
+          state.page      = page;
+          state.pageSize  = document.getElementById('perPage').value;
+          state.search    = document.getElementById('fSearch').value.trim();
+          state.crimeType = document.getElementById('fType').value;
+          state.year      = document.getElementById('fYear').value;
+          state.sortBy    = document.getElementById('fSort').value;
+          state.asc       = document.getElementById('fAsc').value;
+
+          const params = new URLSearchParams({
+            page: state.page,
+            pageSize: state.pageSize,
+            search: state.search,
+            sortBy: state.sortBy,
+            ascending: state.asc,
+            ...(state.crimeType && { crimeType: state.crimeType }),
+            ...(state.year      && { year: state.year }),
+            handler: 'json'
+          });
+
+          // Call the server — the controller returns JSON when handler=json
+          let data;
+          try {
+            const res = await fetch(`${URLS.list}?${params}`, { headers: { 'X-Requested-With':'XMLHttpRequest' } });
+            if (!res.ok) throw new Error(res.statusText);
+            data = await res.json();
+          } catch(e) {
+            showToast('Failed to load records.', 'error');
+            return;
+          }
+
+          renderTable(data.reports);
+          renderPager(data.totalCount, data.page, data.pageSize);
+          document.getElementById('resultInfo').textContent =
+            data.totalCount === 0 ? 'No records found' :
+            `Showing ${(data.page-1)*data.pageSize+1}–${Math.min(data.page*data.pageSize,data.totalCount)} of ${data.totalCount.toLocaleString()} records`;
+          document.getElementById('headCount').textContent = data.totalCount.toLocaleString();
+          document.getElementById('statTotal').textContent = data.totalCount.toLocaleString();
+
+          document.getElementById('selAll').checked = false;
+          updateBulkBar();
+        }
+
+        function renderTable(reports) {
+          const tbody = document.getElementById('tblBody');
+          if (!reports || reports.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="9">
+              <div class="empty-state">
+                <div class="empty-icon">📂</div>
+                <h3>No records found</h3>
+                <p>Adjust your search or filter criteria, or create a new report.</p>
+              </div>
+            </td></tr>`;
+            return;
+          }
+
+          tbody.innerHTML = reports.map(r => {
+            const pillCls  = 'pill pill-' + (r.crimeType || 'default');
+            const dateRep  = r.dateOfReport  ? formatDate(r.dateOfReport)     : '—';
+            const dateCrim = r.crimeDateTime ? formatDateTime(r.crimeDateTime) : '—';
+            return `<tr onclick="openView(${r.crimeReportId})" data-id="${r.crimeReportId}">
+              <td onclick="event.stopPropagation()">
+                <input type="checkbox" class="cb row-cb" data-id="${r.crimeReportId}" onchange="updateBulkBar()" />
+              </td>
+              <td class="mono">${esc(r.fileNumber)}</td>
+              <td>${dateRep}</td>
+              <td>${dateCrim}</td>
+              <td><span class="${pillCls}">${esc(r.crimeType)}</span></td>
+              <td>${esc(r.neighborhood||'—')}</td>
+              <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.location||'')}">${esc(r.location||'—')}</td>
+              <td>${esc(r.reportingArea||'—')}</td>
+              <td class="actions" onclick="event.stopPropagation()">
+                <button class="act-btn view" title="View" onclick="openView(${r.crimeReportId})">
+                  <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/></svg>
+                </button>
+                <button class="act-btn edit" title="Edit" onclick="openEdit(${r.crimeReportId})">
+                  <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z"/></svg>
+                </button>
+                <button class="act-btn del" title="Delete" onclick="openDelete(${r.crimeReportId},'${esc(r.fileNumber)}','${esc(r.crimeType)}','${esc(r.neighborhood||'')}')">
+                  <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z"/></svg>
+                </button>
+              </td>
+            </tr>`;
+          }).join('');
+        }
+
+        function renderPager(total, page, pageSize) {
+          const totalPages = Math.ceil(total / pageSize);
+          const pager = document.getElementById('pagerRow');
+          if (totalPages <= 1) { pager.style.display = 'none'; return; }
+          pager.style.display = 'flex';
+          document.getElementById('pgInfo').textContent = `Page ${page} of ${totalPages}`;
+
+          const links = document.getElementById('pgLinks');
+          let html = '';
+          const disabled = (t,lbl) => `<span class="pg-btn disabled">${lbl}</span>`;
+          const link = (p,lbl) => `<button class="pg-btn${p===page?' active':''}" onclick="loadPage(${p})">${lbl}</button>`;
+
+          html += page > 1 ? link(1,'«') + link(page-1,'‹') : disabled('','«') + disabled('','‹');
+          for (let p = Math.max(1,page-2); p <= Math.min(totalPages,page+2); p++) html += link(p,p);
+          html += page < totalPages ? link(page+1,'›') + link(totalPages,'»') : disabled('','›') + disabled('','»');
+          links.innerHTML = html;
+        }
+
+        // ─── Stats ───────────────────────────────────────────────────────────────────
+        async function loadStats() {
+          try {
+            const res = await fetch(URLS.stats, { headers: { 'X-Requested-With':'XMLHttpRequest' } });
+            if (!res.ok) return;
+            const s = await res.json();
+            document.getElementById('statYear').textContent  = (s.reportsThisYear||0).toLocaleString();
+            document.getElementById('statMonth').textContent = (s.reportsThisMonth||0).toLocaleString();
+            if (s.byType) {
+              const top = Object.entries(s.byType).sort((a,b)=>b[1]-a[1])[0];
+              document.getElementById('statType').textContent = top ? top[0] : '—';
+            }
+          } catch {}
+        }
+
+        // ─── Drawer — CREATE ─────────────────────────────────────────────────────────
+        function openCreate() {
+          isEditMode = false;
+          setDrawerMode('form');
+          document.getElementById('drawerTitleText').textContent = 'New Crime Report';
+          document.getElementById('btnSave').innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg> Create Report`;
+          resetForm();
+          openDrawer();
+        }
+
+        // ─── Drawer — VIEW ───────────────────────────────────────────────────────────
+        async function openView(id) {
+          setDrawerMode('view');
+          document.getElementById('drawerTitleText').textContent = 'Loading…';
+          openDrawer();
+
+          try {
+            const res = await fetch(URLS.get(id), { headers: { 'X-Requested-With':'XMLHttpRequest' } });
+            if (!res.ok) throw new Error();
+            const r = await res.json();
+            viewRecord = r;
+            document.getElementById('drawerTitleText').textContent = r.fileNumber;
+            document.getElementById('frmId').value = r.crimeReportId;
+
+            const pillCls = 'pill pill-'+(r.crimeType||'default');
+            document.getElementById('viewContent').innerHTML = `
+              <dl class="detail-dl">
+                <dt class="detail-dt">File Number</dt><dd class="detail-dd mono">${esc(r.fileNumber)}</dd>
+                <dt class="detail-dt">Crime Type</dt><dd class="detail-dd"><span class="${pillCls}">${esc(r.crimeType)}</span></dd>
+                <dt class="detail-dt">Date Reported</dt><dd class="detail-dd">${r.dateOfReport ? formatDate(r.dateOfReport) : '<span class="empty">Not recorded</span>'}</dd>
+                <dt class="detail-dt">Crime Date/Time</dt><dd class="detail-dd">${r.crimeDateTime ? formatDateTime(r.crimeDateTime) : '<span class="empty">Not recorded</span>'}</dd>
+                <dt class="detail-dt">Raw Date/Time</dt><dd class="detail-dd ${!r.crimeDateTimeRaw?'empty':''}">${r.crimeDateTimeRaw ? esc(r.crimeDateTimeRaw) : 'Not recorded'}</dd>
+                <dt class="detail-dt">Location</dt><dd class="detail-dd ${!r.location?'empty':''}">${r.location ? esc(r.location) : 'Not recorded'}</dd>
+                <dt class="detail-dt">Neighbourhood</dt><dd class="detail-dd ${!r.neighborhood?'empty':''}">${r.neighborhood ? esc(r.neighborhood) : 'Not recorded'}</dd>
+                <dt class="detail-dt">Reporting Area</dt><dd class="detail-dd ${!r.reportingArea?'empty':''}">${r.reportingArea ? esc(r.reportingArea) : 'Not recorded'}</dd>
+                <dt class="detail-dt">Latitude</dt><dd class="detail-dd mono ${!r.latitude?'empty':''}">${r.latitude != null ? r.latitude.toFixed(7) : '—'}</dd>
+                <dt class="detail-dt">Longitude</dt><dd class="detail-dd mono ${!r.longitude?'empty':''}">${r.longitude != null ? r.longitude.toFixed(7) : '—'}</dd>
+                <dt class="detail-dt">Record ID</dt><dd class="detail-dd mono">#${r.crimeReportId}</dd>
+                <dt class="detail-dt">Imported At</dt><dd class="detail-dd">${formatDateTime(r.importedAt)} UTC</dd>
+                <dt class="detail-dt">Row Stamp</dt><dd class="detail-dd" style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);">${r.rowStamp}</dd>
+              </dl>
+              ${r.latitude != null && r.longitude != null ? `
+                <div style="margin-top:1rem;">
+                  <div style="font-size:.67rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:.5rem;">📍 Incident Map</div>
+                  <iframe
+                    style="width:100%;height:240px;border:1px solid var(--line);border-radius:var(--r);"
+                    title="Incident location"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox=${r.longitude-0.01},${r.latitude-0.01},${r.longitude+0.01},${r.latitude+0.01}&layer=mapnik&marker=${r.latitude},${r.longitude}"
+                    loading="lazy">
+                  </iframe>
+                </div>` : ''}
+            `;
+          } catch {
+            document.getElementById('viewContent').innerHTML = '<p style="color:var(--red);padding:1rem;">Failed to load record.</p>';
+          }
+        }
+
+        // ─── Drawer — EDIT ───────────────────────────────────────────────────────────
+        async function openEdit(id) {
+          isEditMode = true;
+          setDrawerMode('form');
+          document.getElementById('drawerTitleText').textContent = 'Loading…';
+          document.getElementById('btnSave').innerHTML = `<svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10z"/></svg> Save Changes`;
+          openDrawer();
+          resetForm();
+
+          try {
+            const res = await fetch(URLS.get(id), { headers: { 'X-Requested-With':'XMLHttpRequest' } });
+            if (!res.ok) throw new Error();
+            const r = await res.json();
+            document.getElementById('drawerTitleText').textContent = `Edit — ${r.fileNumber}`;
+            document.getElementById('frmId').value         = r.crimeReportId;
+            document.getElementById('frmFileNumber').value = r.fileNumber;
+            document.getElementById('frmCrimeType').value  = r.crimeType;
+            document.getElementById('frmDateOfReport').value   = r.dateOfReport   ? r.dateOfReport.substring(0,10) : '';
+            document.getElementById('frmCrimeDateTime').value  = r.crimeDateTime  ? r.crimeDateTime.substring(0,16) : '';
+            document.getElementById('frmCrimeDateTimeRaw').value = r.crimeDateTimeRaw || '';
+            document.getElementById('frmLocation').value    = r.location    || '';
+            document.getElementById('frmNeighborhood').value= r.neighborhood|| '';
+            document.getElementById('frmReportingArea').value = r.reportingArea || '';
+            document.getElementById('frmLatitude').value    = r.latitude  != null ? r.latitude  : '';
+            document.getElementById('frmLongitude').value   = r.longitude != null ? r.longitude : '';
+          } catch {
+            showToast('Failed to load record.', 'error');
+            closeDrawer();
+          }
+        }
+
+        function switchToEdit() {
+          if (viewRecord) openEdit(viewRecord.crimeReportId || document.getElementById('frmId').value);
+        }
+
+        // ─── Save (Create / Edit) ────────────────────────────────────────────────────
+        async function saveReport() {
+          clearErrors();
+          const id = parseInt(document.getElementById('frmId').value) || 0;
+
+          const payload = {
+            crimeReportId:    id,
+            fileNumber:       document.getElementById('frmFileNumber').value.trim(),
+            crimeType:        document.getElementById('frmCrimeType').value,
+            dateOfReport:     document.getElementById('frmDateOfReport').value || null,
+            crimeDateTime:    document.getElementById('frmCrimeDateTime').value || null,
+            crimeDateTimeRaw: document.getElementById('frmCrimeDateTimeRaw').value.trim() || null,
+            location:         document.getElementById('frmLocation').value.trim() || null,
+            neighborhood:     document.getElementById('frmNeighborhood').value.trim() || null,
+            reportingArea:    document.getElementById('frmReportingArea').value.trim() || null,
+            latitude:         document.getElementById('frmLatitude').value  !== '' ? parseFloat(document.getElementById('frmLatitude').value)  : null,
+            longitude:        document.getElementById('frmLongitude').value !== '' ? parseFloat(document.getElementById('frmLongitude').value) : null,
+          };
+
+          // Client-side validation
+          let valid = true;
+          if (!payload.fileNumber) { showErr('errFileNumber', 'File number is required.'); valid = false; }
+          if (!payload.crimeType)  { showErr('errCrimeType',  'Crime type is required.');  valid = false; }
+          if (payload.latitude  != null && (payload.latitude  < -90  || payload.latitude  > 90))  { showToast('Latitude must be −90 to 90.',   'error'); valid = false; }
+          if (payload.longitude != null && (payload.longitude < -180 || payload.longitude > 180)) { showToast('Longitude must be −180 to 180.', 'error'); valid = false; }
+          if (!valid) return;
+
+          const btn  = document.getElementById('btnSave');
+          btn.disabled = true;
+          const origHTML = btn.innerHTML;
+          btn.innerHTML = `<span class="spinner"></span> Saving…`;
+
+          const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+          const url    = isEditMode ? URLS.edit(id) : URLS.create;
+          const method = 'POST';
+
+          try {
+            const res = await fetch(url, {
+              method,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'RequestVerificationToken': token
+              },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+              if (data.errors) {
+                Object.entries(data.errors).forEach(([k,v]) => {
+                  const errId = 'err' + k.charAt(0).toUpperCase() + k.slice(1);
+                  showErr(errId, Array.isArray(v) ? v[0] : v);
+                });
+              } else {
+                showToast(data.message || 'Save failed.', 'error');
+              }
+            } else {
+              showToast(isEditMode ? `Report ${data.fileNumber} updated.` : `Report ${data.fileNumber} created.`, 'success');
+              closeDrawer();
+              loadPage(state.page);
+              loadStats();
+            }
+          } catch {
+            showToast('Network error. Please try again.', 'error');
+          } finally {
+            btn.disabled  = false;
+            btn.innerHTML = origHTML;
+          }
+        }
+
+        // ─── Delete ───────────────────────────────────────────────────────────────────
+        function openDelete(id, fileNum, crimeType, neighborhood) {
+          deleteTarget = id;
+          document.getElementById('delSubtitle').textContent = `File No. ${fileNum} · Record #${id}`;
+          document.getElementById('delRecord').innerHTML = `
+            <div class="mr-row"><span class="mr-key">File Number</span><span class="mr-val mono">${esc(fileNum)}</span></div>
+            <div class="mr-row"><span class="mr-key">Crime Type</span><span class="mr-val">${esc(crimeType)}</span></div>
+            <div class="mr-row"><span class="mr-key">Neighbourhood</span><span class="mr-val">${esc(neighborhood||'—')}</span></div>
+          `;
+          document.getElementById('delModal').classList.add('open');
+        }
+
+        async function confirmDelete() {
+          if (!deleteTarget) return;
+          const btn = document.getElementById('btnConfirmDel');
+          btn.disabled = true;
+          btn.innerHTML = `<span class="spinner"></span> Deleting…`;
+          const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+          try {
+            const res = await fetch(URLS.del(deleteTarget), {
+              method: 'POST',
+              headers: { 'X-Requested-With':'XMLHttpRequest', 'RequestVerificationToken': token },
+            });
+            if (res.ok) {
+              showToast('Crime report deleted.', 'success');
+              closeDeleteModal();
+              loadPage(state.page);
+              loadStats();
+            } else {
+              showToast('Failed to delete report.', 'error');
+            }
+          } catch {
+            showToast('Network error.', 'error');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z"/></svg> Delete Report`;
+          }
+        }
+
+        function closeDeleteModal() {
+          document.getElementById('delModal').classList.remove('open');
+          deleteTarget = null;
+        }
+
+        // ─── Bulk Delete ──────────────────────────────────────────────────────────────
+        async function bulkDelete() {
+          const ids = [...document.querySelectorAll('.row-cb:checked')].map(cb => +cb.dataset.id);
+          if (!ids.length) return;
+          if (!confirm(`Permanently delete ${ids.length} record(s)?`)) return;
+          const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+          try {
+            const res = await fetch(URLS.bulk, {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json', 'X-Requested-With':'XMLHttpRequest', 'RequestVerificationToken': token },
+              body: JSON.stringify(ids)
+            });
+            const d = await res.json();
+            showToast(`Deleted ${d.deleted} record(s).`, 'success');
+            loadPage(state.page);
+            loadStats();
+          } catch {
+            showToast('Bulk delete failed.', 'error');
+          }
+        }
+
+        // ─── Helpers ──────────────────────────────────────────────────────────────────
+        function openDrawer()  { document.getElementById('drawer').classList.add('open'); document.getElementById('drawerOverlay').classList.add('open'); }
+        function closeDrawer() { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); }
+
+        function setDrawerMode(mode) {
+          const isForm = mode === 'form';
+          document.getElementById('formBody').style.display = isForm ? '' : 'none';
+          document.getElementById('formFoot').style.display = isForm ? '' : 'none';
+          document.getElementById('viewBody').style.display = isForm ? 'none' : '';
+          document.getElementById('viewFoot').style.display = isForm ? 'none' : '';
+        }
+
+        function resetForm() {
+          ['frmFileNumber','frmCrimeType','frmDateOfReport','frmCrimeDateTime','frmCrimeDateTimeRaw',
+           'frmLocation','frmNeighborhood','frmReportingArea','frmLatitude','frmLongitude']
+            .forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+          document.getElementById('frmId').value = '0';
+          clearErrors();
+        }
+
+        function showErr(id, msg) {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = msg;
+          el.classList.add('show');
+          el.previousElementSibling?.classList.add('err');
+        }
+        function clearErrors() {
+          document.querySelectorAll('.field-err').forEach(el => { el.classList.remove('show'); el.previousElementSibling?.classList.remove('err'); });
+        }
+
+        function updateBulkBar() {
+          const checked = document.querySelectorAll('.row-cb:checked');
+          const bar = document.getElementById('bulkBar');
+          if (checked.length > 0) { bar.classList.add('show'); document.getElementById('bulkCount').textContent = checked.length + ' selected'; }
+          else bar.classList.remove('show');
+        }
+
+        function clearFilters() {
+          document.getElementById('fSearch').value = '';
+          document.getElementById('fType').value   = '';
+          document.getElementById('fYear').value   = '';
+          document.getElementById('fSort').value   = 'DateOfReport';
+          document.getElementById('fAsc').value    = 'false';
+          loadPage(1);
+        }
+
+        function showToast(msg, type='success') {
+          const wrap = document.getElementById('toastWrap');
+          const t    = document.createElement('div');
+          t.className = `toast ${type}`;
+          t.innerHTML = `<span>${type==='success'?'✓':'✕'}</span> ${esc(msg)}`;
+          wrap.appendChild(t);
+          setTimeout(() => t.remove(), 3100);
+        }
+
+        function esc(s) {
+          if (s == null) return '';
+          return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function formatDate(s) {
+          if (!s) return '—';
+          const d = new Date(s);
+          return isNaN(d) ? s : d.toLocaleDateString('en-AU', { day:'2-digit', month:'short', year:'numeric' });
+        }
+        function formatDateTime(s) {
+          if (!s) return '—';
+          const d = new Date(s);
+          return isNaN(d) ? s : d.toLocaleString('en-AU', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', hour12:false });
+        }
+    </script>
+}
