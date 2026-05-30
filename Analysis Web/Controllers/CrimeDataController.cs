@@ -1,6 +1,7 @@
 ﻿using Core_Layer.HelperMethod;
 using Domain_Layer.DbModels;
 using Domain_Layer.DbModels.Enum;
+using Analysis_Web.Services;            // ← add this using
 using Microsoft.AspNetCore.Mvc;
 using System.Text;
 
@@ -9,10 +10,12 @@ namespace Analysis_Web.Controllers
     public class CrimeDataController : Controller
     {
         private readonly IWebHostEnvironment _env;
+        private readonly ICrimeReportInterface _service;   // ← inject service
 
-        public CrimeDataController(IWebHostEnvironment env)
+        public CrimeDataController(IWebHostEnvironment env, ICrimeReportInterface service)
         {
             _env = env;
+            _service = service;
         }
 
         public IActionResult Index()
@@ -20,13 +23,17 @@ namespace Analysis_Web.Controllers
             return View();
         }
 
+     
         [HttpGet]
-        public IActionResult LoadData(int draw, int start, int length,
+        public async Task<IActionResult> LoadData(int draw, int start, int length,
             string? searchValue, string? sortColumn, string? sortDir)
         {
             var records = GetParsedRecords();
 
-            // Global search
+          
+            var dbLookup = await _service.GetFileNumberToIdMapAsync();
+
+            // 3. Global search
             if (!string.IsNullOrWhiteSpace(searchValue))
             {
                 var sv = searchValue.ToLower();
@@ -41,7 +48,7 @@ namespace Analysis_Web.Controllers
 
             int totalRecords = records.Count;
 
-            // Sorting
+            // 4. Sorting
             records = (sortColumn, sortDir?.ToLower()) switch
             {
                 ("FileNumber", "asc") => records.OrderBy(r => r.FileNumber).ToList(),
@@ -55,17 +62,23 @@ namespace Analysis_Web.Controllers
                 _ => records.OrderByDescending(r => r.DateOfReport).ToList()
             };
 
-            var paged = records.Skip(start).Take(length).Select(r => new
+            // 5. Page + project — include DB id (0 if not saved to DB yet)
+            var paged = records.Skip(start).Take(length).Select(r =>
             {
-                r.FileNumber,
-                DateOfReport = r.DateOfReport?.ToString("yyyy-MM-dd HH:mm") ?? "—",
-                CrimeDateTime = r.CrimeDateTime?.ToString("yyyy-MM-dd HH:mm") ?? "—",
-                CrimeType = r.CrimeType.ToString(),
-                ReportingArea = r.ReportingArea ?? "—",
-                Neighborhood = r.Neighborhood ?? "—",
-                Location = r.Location ?? "—",
-                Latitude = r.Latitude?.ToString("F4") ?? "—",
-                Longitude = r.Longitude?.ToString("F4") ?? "—",
+                dbLookup.TryGetValue(r.FileNumber ?? "", out int dbId);
+                return new
+                {
+                    crimeReportId = dbId,          // 0 = CSV only, >0 = in DB
+                    fileNumber = r.FileNumber,
+                    dateOfReport = r.DateOfReport?.ToString("yyyy-MM-dd HH:mm") ?? "—",
+                    crimeDateTime = r.CrimeDateTime?.ToString("yyyy-MM-dd HH:mm") ?? "—",
+                    crimeType = r.CrimeType.ToString(),
+                    reportingArea = r.ReportingArea ?? "—",
+                    neighborhood = r.Neighborhood ?? "—",
+                    location = r.Location ?? "—",
+                    latitude = r.Latitude?.ToString("F4") ?? "—",
+                    longitude = r.Longitude?.ToString("F4") ?? "—",
+                };
             });
 
             return Json(new
@@ -77,6 +90,9 @@ namespace Analysis_Web.Controllers
             });
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // GET /CrimeData/ExportCsv
+        // ─────────────────────────────────────────────────────────────────────
         [HttpGet]
         public IActionResult ExportCsv(string? searchValue)
         {
@@ -116,8 +132,9 @@ namespace Analysis_Web.Controllers
             return File(bytes, "text/csv", $"CrimeReports_Export_{DateTime.Now:yyyyMMdd_HHmm}.csv");
         }
 
-        // ── CSV parsing ──────────────────────────────────────────────────────────
-
+        // ─────────────────────────────────────────────────────────────────────
+        // CSV parsing — same logic as before, kept in one place
+        // ─────────────────────────────────────────────────────────────────────
         private List<CrimeReport> GetParsedRecords()
         {
             var csvPath = Path.Combine(_env.WebRootPath, "CSV", "Crime_Reports_20260508.csv");
@@ -128,7 +145,6 @@ namespace Analysis_Web.Controllers
             var lines = System.IO.File.ReadAllLines(csvPath, Encoding.UTF8);
             if (lines.Length < 2) return records;
 
-            // Map headers
             var headers = CsvParseHelper.SplitLine(lines[0]);
             var idx = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < headers.Length; i++)
@@ -155,104 +171,28 @@ namespace Analysis_Web.Controllers
                 string Cell(int i) => i >= 0 && i < cols.Length ? cols[i].Trim() : "";
 
                 var crimeRaw = Cell(iCrm);
-                var crimeType = ParseCrimeType(crimeRaw);
+                var dateRpt = CsvParseHelper.ParseReportDate(Cell(iRpt));
 
                 records.Add(new CrimeReport
                 {
                     FileNumber = Cell(iFile),
-                    DateOfReport = CsvParseHelper.ParseReportDate(Cell(iRpt)),
+                    DateOfReport = dateRpt,
                     CrimeDateTime = CsvParseHelper.ParseCrimeDateTime(Cell(iCdt)),
                     CrimeDateTimeRaw = Cell(iCdt),
-                    CrimeType = crimeType,
+                    CrimeType = CrimeReportController.ParseCrimeType(crimeRaw),
                     ReportingArea = Cell(iArea),
                     Neighborhood = Cell(iNbr),
                     Location = Cell(iLoc),
                     Latitude = CsvParseHelper.ParseDecimal(Cell(iLat)),
                     Longitude = CsvParseHelper.ParseDecimal(Cell(iLon)),
-                    ReportYear = CsvParseHelper.ParseReportDate(Cell(iRpt))?.Year,
-                    ReportMonth = CsvParseHelper.ParseReportDate(Cell(iRpt))?.Month,
-                    ReportDayOfWeek = (int?)CsvParseHelper.ParseReportDate(Cell(iRpt))?.DayOfWeek,
+                    ReportYear = dateRpt?.Year,
+                    ReportMonth = dateRpt?.Month,
+                    ReportDayOfWeek = (int?)dateRpt?.DayOfWeek,
                     CrimeHour = CsvParseHelper.ParseCrimeDateTime(Cell(iCdt))?.Hour,
                 });
             }
 
             return records;
-        }
-
-        private static CrimeType ParseCrimeType(string raw)
-        {
-            if (string.IsNullOrWhiteSpace(raw)) return CrimeType.Unknown;
-            var cleaned = raw.Trim().Replace(" ", "").Replace("-", "").Replace(".", "")
-                             .Replace("/", "").Replace("&", "").Replace("(", "")
-                             .Replace(")", "").Replace(",", "").ToLower();
-            return cleaned switch
-            {
-                "hitandrun" => CrimeType.HitAndRun,
-                "larcenyfrommv" => CrimeType.LarcenyFromMV,
-                "shoplifting" => CrimeType.Shoplifting,
-                "larcenyofbicycle" => CrimeType.LarcenyOfBicycle,
-                "forgery" => CrimeType.Forgery,
-                "maldestproperty" => CrimeType.MalDestProperty,
-                "warrantarrest" => CrimeType.WarrantArrest,
-                "larcenyfromresidence" => CrimeType.LarcenyFromResidence,
-                "simpleassault" => CrimeType.SimpleAssault,
-                "larcenyfrombuildingm" => CrimeType.LarcenyFromBuilding,
-                "larcenyfrombuildinge" => CrimeType.LarcenyFromBuilding,
-                "larcenyfrombuilding" => CrimeType.LarcenyFromBuilding,
-                "housebreak" => CrimeType.Housebreak,
-                "accident" => CrimeType.Accident,
-                "adminerror" => CrimeType.AdminError,
-                "larcenyfromperson" => CrimeType.LarcenyFromPerson,
-                "threats" => CrimeType.Threats,
-                "aggravatedassault" => CrimeType.AggravatedAssault,
-                "flimflam" => CrimeType.FlimFlam,
-                "missingperson" => CrimeType.MissingPerson,
-                "autotheft" => CrimeType.AutoTheft,
-                "harassment" => CrimeType.Harassment,
-                "streetrobbery" => CrimeType.StreetRobbery,
-                "drugs" => CrimeType.Drugs,
-                "suspiciouspackage" => CrimeType.SuspiciousPackage,
-                "commercialbreak" => CrimeType.CommercialBreak,
-                "trespassing" => CrimeType.Trespassing,
-                "larcenymisc" => CrimeType.LarcenyMisc,
-                "oui" => CrimeType.OUI,
-                "phonecalls" => CrimeType.PhoneCalls,
-                "disorderly" => CrimeType.Disorderly,
-                "larcenyofplate" => CrimeType.LarcenyOfPlate,
-                "indecentexposure" => CrimeType.IndecentExposure,
-                "commercialrobbery" => CrimeType.CommercialRobbery,
-                "taxiviolation" => CrimeType.TaxiViolation,
-                "drinkinginpublic" => CrimeType.DrinkingInPublic,
-                "recstolenpropertym" => CrimeType.RecStolenProperty,
-                "recstolenpropertye" => CrimeType.RecStolenProperty,
-                "recstolenpropert" => CrimeType.RecStolenProperty,
-                "recstoledproperty" => CrimeType.RecStolenProperty,
-                "violationofho" => CrimeType.ViolationOfHO,
-                "larcenyofservices" => CrimeType.LarcenyOfServices,
-                "counterfeiting" => CrimeType.Counterfeiting,
-                "extortionblackmail" => CrimeType.ExtortionBlackmail,
-                "weaponviolations" => CrimeType.WeaponViolations,
-                "noisecomplaint" => CrimeType.NoiseComplaint,
-                "medical" => CrimeType.Medical,
-                "annoyingaccosting" => CrimeType.AnnoyingAccosting,
-                "embezzlement" => CrimeType.Embezzlement,
-                "arson" => CrimeType.Arson,
-                "civildispute" => CrimeType.CivilDispute,
-                "sexoffenderviolation" => CrimeType.SexOffenderViolation,
-                "peepingspying" => CrimeType.PeepingSpying,
-                "liquorpossessionsale" => CrimeType.LiquorPossessionSale,
-                "prostitution" => CrimeType.Prostitution,
-                "elderassistance19a" => CrimeType.ElderAssistance,
-                "stalking" => CrimeType.Stalking,
-                "encampment" => CrimeType.Encampment,
-                "kidnapping" => CrimeType.Kidnapping,
-                "homicide" => CrimeType.Homicide,
-                "violationofro" => CrimeType.ViolationOfRO,
-                "domesticdispute" => CrimeType.DomesticDispute,
-                "gambling" => CrimeType.Gambling,
-                "hoarding" => CrimeType.Hoarding,
-                _ => CrimeType.Unknown
-            };
         }
 
         private static string CsvQuote(string? val)

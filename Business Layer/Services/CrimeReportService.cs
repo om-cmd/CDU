@@ -154,5 +154,35 @@ namespace Analysis_Web.Services
                                            .ToDictionary(g => g.Key, g => g.Count())
             };
         }
+        public async Task<int> BulkInsertAsync(IEnumerable<CrimeReport> reports)
+        {
+            var list = reports.ToList();
+            if (list.Count == 0) return 0;
+
+            await _context.CrimeReports.AddRangeAsync(list);
+            await _context.SaveChangesAsync();
+            return list.Count;
+        }
+
+        public async Task<HashSet<string>> GetAllFileNumbersAsync()
+        {
+            var fileNumbers = await _context.CrimeReports
+                .AsNoTracking()
+                .Select(r => r.FileNumber)
+                .ToListAsync();
+
+            return new HashSet<string>(fileNumbers, StringComparer.OrdinalIgnoreCase);
+        }
+        public async Task<Dictionary<string, int>> GetFileNumberToIdMapAsync()
+        {
+            var records = await _context.CrimeReports
+                .Select(f => new { f.FileNumber, f.CrimeReportId })
+                .ToListAsync();
+
+            return records.ToDictionary(
+                r => r.FileNumber,
+                r => r.CrimeReportId
+            );
+        }
     }
 }

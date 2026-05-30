@@ -22,6 +22,19 @@ namespace Domain_Layer.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            //modelBuilder.Entity<CrimeReport>()
+            //  .HasIndex(r => r.FileNumber)
+            //  .IsUnique(false)          
+            //  .HasDatabaseName("IX_CrimeReport_FileNumber");
+
+            //modelBuilder.Entity<CrimeReport>()
+            //    .HasIndex(r => r.ReportYear)
+            //    .HasDatabaseName("IX_CrimeReport_ReportYear");
+
+            //modelBuilder.Entity<CrimeReport>()
+            //    .HasIndex(r => r.CrimeType)
+            //    .HasDatabaseName("IX_CrimeReport_CrimeType");
         }
+
     }
 }

@@ -1,5 +1,5 @@
 ﻿@{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Crime Data";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
@@ -7,167 +7,504 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" />
     <style>
-      
-
-        body { background: var(--paper); color: var(--ink); }
+        .page-header:after,
+        .page-header:before {
+            position: relative !important;
+           
+        }
 
         .page-header {
-            background: var(--ink);
+            min-height: 0 !important;
+            max-height: none !important;
+            display: flex !important;
+            height: 100%;
+            padding: 0;
+            color: unset !important;
+            position: relative;
+        }
+
+        :root {
+            --ink: #1e293b;
+            --accent: #c0392b;
+            --border: #e2e8f0;
+            --row-hover: #f8fafc;
+            --muted: #64748b;
+        }
+
+        /* Page header with right-aligned buttons */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 1.5rem 2rem 0.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin: 0;
+            }
+
+            .page-header p {
+                margin: 0.25rem 0 0 0;
+                font-size: 0.8rem;
+                color: var(--muted);
+            }
+
+        .page-header-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn-new-report, .btn-bulk-import {
+            border: none;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.82rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: background 0.15s;
+        }
+
+        .btn-new-report {
+            background: #2563eb;
             color: #fff;
-            padding: 2rem 2.5rem 1.5rem;
-            margin-bottom: 0;
-            border-bottom: 4px solid var(--accent);
         }
-        .page-header h1 {
-            font-family: 'Georgia', serif;
-            font-size: 2rem;
-            letter-spacing: -0.5px;
-            margin: 0 0 .25rem;
+
+            .btn-new-report:hover {
+                background: #1d4ed8;
+                color: #fff;
+            }
+
+        .btn-bulk-import {
+            background: #059669;
+            color: #fff;
         }
-        .page-header p {
-            font-size: .85rem;
-            color: #aaa;
-            margin: 0;
-            font-family: 'Courier New', monospace;
+
+            .btn-bulk-import:hover {
+                background: #047857;
+            }
+
+        .btn-export {
+            background: var(--accent);
+            color: black;
+            border: none;
+            padding: 0.45rem 1.1rem;
+            font-size: 0.82rem;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
         }
+
+            .btn-export:hover {
+                background: #a93226;
+                color: #fff;
+            }
 
         .toolbar {
             background: #fff;
             border-bottom: 1px solid var(--border);
-            padding: .85rem 2.5rem;
+            padding: 0.85rem 2rem;
             display: flex;
             align-items: center;
             gap: 1rem;
             flex-wrap: wrap;
         }
 
-        .btn-export {
-            background: var(--accent);
-            color: black;
-            border: none;
-            padding: .45rem 1.1rem;
-            font-size: .82rem;
-            border-radius: 3px;
-            font-weight: 600;
-            letter-spacing: .04em;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-            transition: background .15s;
-        }
-        .btn-export:hover { background: #a93226; color: #fff; }
-
         .stats-bar {
             display: flex;
             gap: 2rem;
             align-items: center;
             margin-left: auto;
-            font-size: .8rem;
+            font-size: 0.8rem;
             color: var(--muted);
             font-family: 'Courier New', monospace;
         }
-        .stats-bar strong { color: var(--ink); font-size: 1rem; }
+
+            .stats-bar strong {
+                color: var(--ink);
+                font-size: 1rem;
+            }
 
         .table-wrap {
-            padding: 1.5rem 2.5rem 3rem;
+            padding: 1.5rem 2rem 3rem;
         }
 
         table.dataTable thead th {
             background: var(--ink);
+            color: #fff;
             font-family: 'Courier New', monospace;
-            font-size: .75rem;
-            letter-spacing: .08em;
+            font-size: 0.75rem;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             border-bottom: none !important;
-            padding: .7rem 1rem;
+            padding: 0.7rem 1rem;
             white-space: nowrap;
         }
-        table.dataTable thead th:hover { background: #1e2730; }
-        table.dataTable thead .sorting:after,
-        table.dataTable thead .sorting_asc:after,
-        table.dataTable thead .sorting_desc:after { color: var(--accent) !important; }
 
-        table.dataTable tbody tr {
-            border-bottom: 1px solid var(--border);
-            transition: background .1s;
-        }
-        table.dataTable tbody tr:hover td { background: var(--row-hover) !important; }
         table.dataTable tbody td {
-            font-size: .82rem;
-            padding: .6rem 1rem;
+            font-size: 0.82rem;
+            padding: 0.6rem 1rem;
             vertical-align: middle;
             color: var(--ink);
         }
 
         .badge-crime {
             display: inline-block;
-            padding: .18em .6em;
+            padding: 0.18em 0.6em;
             border-radius: 2px;
-            font-size: .72rem;
+            font-size: 0.72rem;
             font-weight: 700;
-            letter-spacing: .05em;
             text-transform: uppercase;
-            font-family: 'Courier New', monospace;
-        }
-       
-
-        .dataTables_wrapper .dataTables_filter input {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: .3rem .6rem;
-            font-size: .82rem;
-            outline: none;
-        }
-        .dataTables_wrapper .dataTables_filter input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 2px rgba(192,57,43,.15);
-        }
-        .dataTables_wrapper .dataTables_length select {
-            border: 1px solid var(--border);
-            border-radius: 3px;
-            padding: .25rem .4rem;
-            font-size: .82rem;
-        }
-        .dataTables_wrapper .dataTables_info {
-            font-size: .78rem;
-            color: var(--muted);
-            font-family: 'Courier New', monospace;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            font-size: .78rem !important;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: var(--accent) !important;
-            color: #fff !important;
-            border-color: var(--accent) !important;
-            border-radius: 3px;
+            background: #e8edf7;
+            color: #1a2a4a;
         }
 
+        .tbl-act-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: 1px solid #dde3ec;
+            background: #fff;
+            cursor: pointer;
+            color: #5a6a7e;
+            text-decoration: none;
+            margin: 0 1px;
+            transition: all 0.15s;
+        }
+
+            .tbl-act-btn:hover.edit-btn {
+                background: #eff6ff;
+                border-color: #2563eb;
+                color: #2563eb;
+            }
+
+            .tbl-act-btn:hover.del-btn {
+                background: #fff0f0;
+                border-color: #dc2626;
+                color: #dc2626;
+            }
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(255,255,255,0.92);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            gap: 1rem;
+        }
+
+            .loading-overlay .ld-spinner {
+                width: 36px;
+                height: 36px;
+                border: 3px solid #dde;
+                border-top-color: var(--accent);
+                border-radius: 50%;
+                animation: spin 0.7s linear infinite;
+            }
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        /* Modals (import & delete) – keep your existing styles, abbreviated here for brevity */
+        .imp-modal-overlay, .del-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(11,22,36,0.55);
+            z-index: 1050;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s, visibility 0.2s;
+        }
+
+            .imp-modal-overlay.open, .del-modal-overlay.open {
+                opacity: 1;
+                visibility: visible;
+            }
+
+        .imp-modal, .del-modal {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+            width: min(540px, 100%);
+            overflow: hidden;
+            transform: scale(0.95);
+            transition: transform 0.2s;
+        }
+
+        .imp-modal-overlay.open .imp-modal,
+        .del-modal-overlay.open .del-modal {
+            transform: scale(1);
+        }
+
+        .imp-modal-head {
+            background: var(--ink);
+            border-bottom: 3px solid #059669;
+            padding: 1rem 1.3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .imp-modal-head h3 {
+                color: #fff;
+                margin: 0;
+                font-size: 1rem;
+            }
+
+        .imp-modal-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 4px;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .drop-zone {
+            border: 2px dashed #dde3ec;
+            border-radius: 8px;
+            padding: 2rem 1rem;
+            text-align: center;
+            background: #f9fafc;
+            position: relative;
+            cursor: pointer;
+        }
+
+            .drop-zone input[type="file"] {
+                position: absolute;
+                inset: 0;
+                opacity: 0;
+                cursor: pointer;
+            }
+
+        .import-progress {
+            display: none;
+            margin-top: 1rem;
+        }
+
+            .import-progress.show {
+                display: block;
+            }
+
+        .prog-bar-wrap {
+            background: #e5e7eb;
+            border-radius: 20px;
+            height: 8px;
+        }
+
+        .prog-bar {
+            height: 100%;
+            background: #059669;
+            border-radius: 20px;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .import-result {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.65rem;
+            border-radius: 4px;
+        }
+
+            .import-result.show {
+                display: block;
+            }
+
+            .import-result.success {
+                background: #ecfdf5;
+                color: #065f46;
+                border-left: 4px solid #059669;
+            }
+
+            .import-result.error {
+                background: #fff0f0;
+                color: #7b1e18;
+                border-left: 4px solid #dc2626;
+            }
+
+        .toast-wrap {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: #1a2a4a;
+            color: #fff;
+            border-radius: 5px;
+            padding: 0.65rem 0.95rem;
+            font-size: 0.83rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            animation: fadeIn 0.25s, fadeOut 0.3s 2.7s forwards;
+        }
+
+            .toast.success {
+                border-left: 4px solid #16a34a;
+            }
+
+            .toast.error {
+                border-left: 4px solid #dc2626;
+            }
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @@keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+        }
+
+        .sm-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+        /* additional modal styles (delete) */
+        .del-modal-head {
+            background: linear-gradient(135deg, #7b1e18, #a93226);
+            padding: 0.9rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+        }
+
+        .del-modal-warn {
+            background: #fff0f0;
+            border-left: 4px solid #dc2626;
+            padding: 0.6rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.82rem;
+        }
+
+        .btn-cancel-sm {
+            background: none;
+            border: 1px solid #dde3ec;
+            border-radius: 4px;
+            padding: 0.4rem 0.85rem;
+            cursor: pointer;
+        }
+
+        .btn-confirm-del {
+            background: #dc2626;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.4rem 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .btn-imp-do {
+            background: #059669;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 0.45rem 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .imp-modal-foot, .del-modal-foot {
+            padding: 0.85rem 1.3rem;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+            background: #f9f9f9;
+        }
     </style>
 }
 
+<!-- LOADING OVERLAY -->
 <div id="loadingOverlay" class="loading-overlay">
-    <div class="spinner"></div>
-    <p>PARSING CSV — PLEASE WAIT</p>
+    <div class="ld-spinner"></div>
+    <p>LOADING CRIME DATA...</p>
 </div>
 
-<div >
-    <p>Cambridge, MA &nbsp;|&nbsp; Source: Crime_Reports_20260508.csv</p>
+<!-- PAGE HEADER (buttons on the right) -->
+<div class="page-header">
+    <div>
+        <h1>
+            <svg width="26" height="26" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v2A1.5 1.5 0 0 1 14.5 5h-13A1.5 1.5 0 0 1 0 3.5v-2z" />
+                <path d="M2 2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zM0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8z" />
+            </svg>
+            Crime Data
+        </h1>
+        <p>Cambridge, MA | Source: Crime_Reports_20260508.csv</p>
+    </div>
+    <div class="page-header-actions">
+        <a href="@Url.Action("CrimeReport", "CrimeReport")" class="btn-new-report">
+            <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
+            New Report
+        </a>
+        <button class="btn-bulk-import" onclick="openImport()">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+            </svg>
+            Bulk Import CSV
+        </a>
+    </div>
 </div>
 
+<!-- TOOLBAR -->
 <div class="toolbar">
-    <button class="btn-export" id="btnExport">
-        &#8595; Export CSV
-    </button>
+    <button class="btn-export" id="btnExport">&#8595; Export CSV</button>
     <div class="stats-bar">
         <div>Records loaded: <strong id="statTotal">—</strong></div>
         <div>Filtered: <strong id="statFiltered">—</strong></div>
     </div>
 </div>
 
+<!-- DATA TABLE -->
 <div class="table-wrap">
     <table id="crimeTable" class="table table-bordered w-100" style="display:none;">
         <thead>
@@ -179,75 +516,259 @@
                 <th>Area</th>
                 <th>Neighborhood</th>
                 <th>Location</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
+                <th>Lat</th>
+                <th>Lon</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody></tbody>
     </table>
 </div>
 
+<!-- IMPORT MODAL (simplified, keep your existing logic) -->
+<div class="imp-modal-overlay" id="importModal">
+    <div class="imp-modal">
+        <div class="imp-modal-head">
+            <h3>Bulk Import CSV</h3>
+            <button class="imp-modal-close" onclick="closeImport()">✕</button>
+        </div>
+        <div class="imp-modal-body">
+            <div class="drop-zone" id="dropZone">
+                <input type="file" id="csvFile" accept=".csv" onchange="onFileSelected(this)" />
+                <div>📂 Drop CSV or click to browse</div>
+                <div id="dzFileName" style="margin-top:8px; font-size:0.8rem;"></div>
+            </div>
+            <div class="import-opts" style="margin-top:1rem;">
+                <label><input type="checkbox" id="optSkipDuplicates" checked /> Skip duplicate file numbers</label>
+            </div>
+            <div class="import-progress" id="importProgress">
+                <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
+                <div class="prog-text" id="progText"></div>
+            </div>
+            <div class="import-result" id="importResult"></div>
+        </div>
+        <div class="imp-modal-foot">
+            <button class="btn-cancel-sm" onclick="closeImport()">Cancel</button>
+            <button class="btn-imp-do" id="btnImport" onclick="doImport()" disabled>Import</button>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="del-modal-overlay" id="quickDelModal">
+    <div class="del-modal">
+        <div class="del-modal-head">
+            <span>⚠️ Confirm Deletion</span>
+        </div>
+        <div class="del-modal-body">
+            <div class="del-modal-warn">This record will be permanently removed.</div>
+            <div id="qDelRecord"></div>
+        </div>
+        <div class="del-modal-foot">
+            <button class="btn-cancel-sm" onclick="closeQuickDel()">Cancel</button>
+            <button class="btn-confirm-del" id="btnQDelConfirm" onclick="confirmQuickDel()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+@Html.AntiForgeryToken()
+
 @section Scripts {
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
     <script>
+        const EDIT_BASE = '@Url.Action("CrimeReport", "CrimeReport")';
+        const DEL_BASE = '@Url.Action("Delete", "CrimeReport")';
+        const IMPORT_URL = '@Url.Action("ImportCsv", "CrimeReport")';
+        const EXPORT_URL = '@Url.Action("ExportCsv", "CrimeData")';
+        const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        let quickDelTarget = null;
+
+        function hideLoadingOverlay() {
+        $('#loadingOverlay').fadeOut(300);
+        $('#crimeTable').fadeIn(200);
+        }
+
         $(function () {
-            const badgeClass = type => 'badge-crime badge-' + (type || 'Unknown').replace(/\s/g, '');
-
-            const table = $('#crimeTable').DataTable({
-                processing: true,
-                serverSide: true,
-                ajax: {
-                    url: '@Url.Action("LoadData", "CrimeData")',
-                    type: 'GET',
-                    data: function (d) {
-                        return {
-                            draw:        d.draw,
-                            start:       d.start,
-                            length:      d.length,
-                            searchValue: d.search.value,
-                            sortColumn:  d.columns[d.order[0].column]?.data,
-                            sortDir:     d.order[0].dir
-                        };
-                    },
-                    dataSrc: function (json) {
-                        $('#statTotal').text(Number(json.recordsTotal).toLocaleString());
-                        $('#statFiltered').text(Number(json.recordsFiltered).toLocaleString());
-                        $('#loadingOverlay').fadeOut(300);
-                        $('#crimeTable').fadeIn(200);
-                        return json.data;
-                    }
-                },
-                columns: [
-                    { data: 'fileNumber' },
-                    { data: 'dateOfReport' },
-                    { data: 'crimeDateTime' },
-                    {
-                        data: 'crimeType',
-                        render: (d) => `<span class="${badgeClass(d)}">${d}</span>`
-                    },
-                    { data: 'reportingArea' },
-                    { data: 'neighborhood' },
-                    { data: 'location', render: d => d.length > 40 ? `<span title="${d}">${d.substring(0, 40)}…</span>` : d },
-                    { data: 'latitude',  orderable: false },
-                    { data: 'longitude', orderable: false }
-                ],
-                pageLength: 25,
-                lengthMenu: [10, 25, 50, 100],
-                order: [[1, 'desc']],
-                language: {
-                    search: '',
-                    searchPlaceholder: 'Search records…',
-                    processing: ''
-                },
-                dom: '<"row align-items-center mb-2"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>rtip'
-            });
-
-            // Export with current search filter
-            $('#btnExport').on('click', function () {
-                const search = encodeURIComponent(table.search());
-                window.location.href = '@Url.Action("ExportCsv", "CrimeData")?searchValue=' + search;
-            });
+        const table = $('#crimeTable').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+        url: '@Url.Action("LoadData", "CrimeData")',
+        type: 'GET',
+        data: function (d) {
+        return {
+        draw: d.draw,
+        start: d.start,
+        length: d.length,
+        searchValue: d.search.value,
+        sortColumn: d.columns[d.order[0]?.column]?.data,
+        sortDir: d.order[0]?.dir
+        };
+        },
+        dataSrc: function (json) {
+        $('#statTotal').text(Number(json.recordsTotal).toLocaleString());
+        $('#statFiltered').text(Number(json.recordsFiltered).toLocaleString());
+        hideLoadingOverlay();
+        return json.data;
+        },
+        error: function () {
+        hideLoadingOverlay();
+        showToast('Failed to load data. Please refresh.', 'error');
+        }
+        },
+        columns: [
+        { data: 'fileNumber' },
+        { data: 'dateOfReport' },
+        { data: 'crimeDateTime' },
+        { data: 'crimeType', render: d => `<span class="badge-crime">${escapeHtml(d)}</span>` },
+        { data: 'reportingArea' },
+        { data: 'neighborhood' },
+        { data: 'location', render: d => d ? (d.length > 38 ? d.substr(0,38)+'…' : d) : '—' },
+        { data: 'latitude', orderable: false },
+        { data: 'longitude', orderable: false },
+        {
+        data: 'crimeReportId',
+        orderable: false,
+        searchable: false,
+        render: function (id, type, row) {
+        const hasId = id && id > 0;
+        const editUrl = hasId ? `${EDIT_BASE}?id=${id}&mode=edit` : EDIT_BASE;
+        const editBtn = `<a href="${editUrl}" class="tbl-act-btn edit-btn" title="${hasId ? 'Edit' : 'Save first'}">
+        ✏️</a>`;
+        const delBtn = hasId
+        ? `<button class="tbl-act-btn del-btn" onclick="openQuickDel(${id},'${escapeJs(row.fileNumber)}','${escapeJs(row.crimeType)}','${escapeJs(row.neighborhood)}')">🗑️</button>`
+        : `<button class="tbl-act-btn del-btn" disabled style="opacity:0.4;">🗑️</button>`;
+        return `<div style="display:flex; gap:4px;">${editBtn}${delBtn}</div>`;
+        }
+        }
+        ],
+        pageLength: 25,
+        order: [[1, 'desc']],
+        language: { search: '', searchPlaceholder: 'Search…' },
+        dom: '<"row"<"col-sm-6"l><"col-sm-6 d-flex justify-content-end"f>>rtip'
         });
+
+        $('#btnExport').on('click', () => window.location.href = `${EXPORT_URL}?searchValue=${encodeURIComponent(table.search())}`);
+        setTimeout(hideLoadingOverlay, 5000);
+        });
+
+        // Delete functions
+        function openQuickDel(id, fileNum, crimeType, nbr) {
+        quickDelTarget = id;
+        document.getElementById('qDelRecord').innerHTML = `
+        <div><strong>File:</strong> ${escapeHtml(fileNum)}</div>
+        <div><strong>Crime:</strong> ${escapeHtml(crimeType)}</div>
+        <div><strong>Neighborhood:</strong> ${escapeHtml(nbr || '—')}</div>`;
+        document.getElementById('quickDelModal').classList.add('open');
+        }
+        function closeQuickDel() { document.getElementById('quickDelModal').classList.remove('open'); quickDelTarget = null; }
+        async function confirmQuickDel() {
+        if (!quickDelTarget) return;
+        const btn = document.getElementById('btnQDelConfirm');
+        btn.disabled = true; btn.innerHTML = '<span class="sm-spinner"></span> Deleting...';
+        try {
+        const res = await fetch(`${DEL_BASE}/Delete/${quickDelTarget}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'RequestVerificationToken': TOKEN }
+        });
+        if (res.ok) {
+        showToast('Report deleted.', 'success');
+        closeQuickDel();
+        $('#crimeTable').DataTable().ajax.reload();
+        } else showToast('Delete failed.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+        finally { btn.disabled = false; btn.innerHTML = 'Delete'; }
+        }
+
+        // Import functions
+        function openImport() { document.getElementById('importModal').classList.add('open'); resetImportUI(); }
+        function closeImport() { document.getElementById('importModal').classList.remove('open'); resetImportUI(); }
+        function resetImportUI() {
+        document.getElementById('csvFile').value = '';
+        document.getElementById('dzFileName').innerHTML = '';
+        document.getElementById('importProgress').classList.remove('show');
+        document.getElementById('importResult').classList.remove('show');
+        document.getElementById('btnImport').disabled = true;
+        }
+        function onFileSelected(input) { if (input.files[0]) setFile(input.files[0]); }
+        function setFile(file) {
+        if (!file.name.endsWith('.csv')) { showToast('Only .csv files allowed.', 'error'); return; }
+        document.getElementById('dzFileName').innerHTML = `📄 ${file.name}`;
+        document.getElementById('btnImport').disabled = false;
+        }
+        async function doImport() {
+        const file = document.getElementById('csvFile').files[0];
+        if (!file) return;
+        const skipDupes = document.getElementById('optSkipDuplicates').checked;
+        const btn = document.getElementById('btnImport');
+        btn.disabled = true; btn.innerHTML = '<span class="sm-spinner"></span> Importing...';
+        const prog = document.getElementById('importProgress');
+        prog.classList.add('show');
+        document.getElementById('progBar').style.width = '30%';
+        document.getElementById('progText').innerText = 'Uploading...';
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('skipDuplicates', skipDupes);
+        try {
+        document.getElementById('progBar').style.width = '60%';
+        document.getElementById('progText').innerText = 'Processing...';
+        const res = await fetch(IMPORT_URL, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'RequestVerificationToken': TOKEN },
+        body: fd
+        });
+        document.getElementById('progBar').style.width = '100%';
+        const data = await res.json();
+        const resultDiv = document.getElementById('importResult');
+        resultDiv.classList.add('show');
+        if (res.ok) {
+        resultDiv.className = 'import-result show success';
+        resultDiv.innerHTML = `✅ Imported ${data.inserted} records. Skipped ${data.skipped} duplicates.`;
+        showToast(`Imported ${data.inserted} records.`, 'success');
+        $('#crimeTable').DataTable().ajax.reload();
+        } else {
+        resultDiv.className = 'import-result show error';
+        resultDiv.innerHTML = `❌ Failed: ${data.message || 'Unknown error'}`;
+        }
+        } catch (e) {
+        showToast('Import network error.', 'error');
+        } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Import';
+        }
+        }
+
+        // Drag & drop
+        document.addEventListener('DOMContentLoaded', () => {
+        const dz = document.getElementById('dropZone');
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = '#059669'; });
+        dz.addEventListener('dragleave', () => dz.style.borderColor = '#dde3ec');
+        dz.addEventListener('drop', e => {
+        e.preventDefault();
+        dz.style.borderColor = '#dde3ec';
+        const file = e.dataTransfer.files[0];
+        if (file) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('csvFile').files = dt.files;
+        setFile(file);
+        }
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeImport(); closeQuickDel(); } });
+        });
+
+        function showToast(msg, type) {
+        const wrap = document.getElementById('toastWrap');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${escapeHtml(msg)}`;
+        wrap.appendChild(t);
+        setTimeout(() => t.remove(), 3100);
+        }
+        function escapeHtml(s) { return s ? String(s).replace(/[&<>]/g, function(m) { return m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'); }) : ''; }
+        function escapeJs(s) { return s ? String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") : ''; }
     </script>
 }
