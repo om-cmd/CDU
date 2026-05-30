@@ -1,5 +1,6 @@
 using Analysis_Web.Services;
 using Business_Layer;
+using Business_Layer.DependencyInjection;
 using Domain_Layer.Database;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -11,32 +12,41 @@ builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<ICrimeReportInterface, CrimeReportService>();
+
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(2);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.Name = "AnalysisWeb.Session";
 });
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.LoginPath = "/Authentication/Login"; 
+        options.LogoutPath = "/Authentication/Logout";
+        options.AccessDeniedPath = "/Authentication/AccessDenied";
+
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
         options.SlidingExpiration = true;
+
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.Name = "AnalysisWeb.Auth";
+
+        options.Cookie.SameSite = SameSiteMode.Lax;
     });
+
 builder.Services.AddAuthorization();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+builder.Services.AddService();
 
 var app = builder.Build();
 
@@ -55,6 +65,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();

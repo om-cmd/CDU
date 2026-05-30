@@ -23,7 +23,7 @@ namespace Infrastructure.Data
                     FullName = "System Super Admin",
                     UserName = "superadmin",
                     Email = "superadmin@crime.com",
-                    Password = HashPassword.Hash("Admin@123"),
+                    Password = StaticMethods.HashPassword("Admin@123").Item2,
                     UserType = UserType.SuperAdmin,
                     IsActive = true,
                     EmailConfirmedStatus = true,

@@ -1,4 +1,5 @@
-﻿using Domain_Layer.Database;
+﻿using Analysis_Web.Services;
+using Domain_Layer.Database;
 using Domain_Layer.DbModels;
 using Domain_Layer.DbModels.Enum;
 using Core_Layer.HelperMethod;
@@ -11,15 +12,16 @@ namespace YourApp.Controllers
     public class AuthenticationController : Controller
     {
         private readonly AnalysisDbContext _context;
+        private readonly IAuthenticationService _authenticationService;
 
-        public AuthenticationController(AnalysisDbContext context)
+        public AuthenticationController(AnalysisDbContext context, IAuthenticationService authenticationService)
         {
             _context = context;
+            _authenticationService = authenticationService;
         }
 
-
         [HttpGet]
-        public IActionResult Login(string? returnUrl = null)
+        public IActionResult Login(string returnUrl)
         {
             ViewData["ReturnUrl"] = returnUrl;
             return View();
@@ -27,48 +29,27 @@ namespace YourApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginDto model, string? returnUrl = null)
+        public async Task<IActionResult> Login(LoginDto dto, string returnUrl)
         {
-            ViewData["ReturnUrl"] = returnUrl;
-
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var user = await _context.ApplicationUsers
-                .FirstOrDefaultAsync(u =>
-                    u.Email == model.Email ||
-                    u.UserName == model.UserName);
-
-            if (user == null ||
-                !HashPassword.Verify(model.Password, user.Password))
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError("", "Invalid login attempt.");
-                return View(model);
+                var response = await _authenticationService.Login(dto);
+                if (response.Success == true)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    return View(dto);
+                }
             }
-
-            if (!user.IsActive)
+            else
             {
-                ModelState.AddModelError("", "Your account is inactive.");
-                return View(model);
+                ViewData["ReturnUrl"] = returnUrl;
+                ViewBag["Error"] = "Please Fill the Login Form Properly";
+                return View(dto);
             }
-
-            HttpContext.Session.SetInt32("UserId", user.UserAccountId);
-            HttpContext.Session.SetString("UserType", user.UserType.ToString());
-            HttpContext.Session.SetString("FullName", user.FullName);
-
-            user.LastLoginAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-
-            if (!string.IsNullOrWhiteSpace(returnUrl)
-                && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-
-            return RedirectToAction("Index", "Home");
         }
-
 
         [HttpGet]
         public IActionResult Register()
@@ -80,109 +61,22 @@ namespace YourApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterDto model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var result = await CreateUser(model, UserType.User);
-
-            if (!result.Success)
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError("", result.Message);
+                var response = await _authenticationService.RegisterUserAsync(model);
+                if (response.Success)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    return View(model);
+                }
+            }
+            else
+            {
                 return View(model);
             }
-
-            TempData["Success"] = "Account created successfully.";
-
-            return RedirectToAction(nameof(Login));
-        }
-
-
-        [HttpGet]
-        public IActionResult AdminRegister()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AdminRegister(RegisterDto model)
-        {
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var result = await CreateUser(model, model.UserType);
-
-            if (!result.Success)
-            {
-                ModelState.AddModelError("", result.Message);
-                return View(model);
-            }
-
-            TempData["Success"] = "Internal user created successfully.";
-
-            return RedirectToAction("Index", "Home");
-        }
-
-
-        private async Task<(bool Success, string Message)> CreateUser(
-            RegisterDto model,
-            UserType userType)
-        {
-            bool exists = await _context.ApplicationUsers.AnyAsync(u =>
-                u.Email == model.Email ||
-                u.UserName == model.UserName);
-
-            if (exists)
-            {
-                return (false, "Email or Username already exists.");
-            }
-
-            var user = new ApplicationUser
-            {
-                FullName = model.FullName,
-                UserName = model.UserName,
-                Email = model.Email,
-
-                Password = HashPassword.Hash(model.Password),
-
-                Contact = model.Contact,
-                Department = model.Department,
-                DateOfBirth = model.DateOfBirth,
-                Address = model.Address,
-                City = model.City,
-                State = model.State,
-                Country = model.Country,
-                PostalCode = model.PostalCode,
-                Gender = model.Gender,
-                ImageUrl = model.ImageUrl,
-
-                UserType = userType,
-
-                IsActive = true,
-                IsValidated = false,
-                PhoneValidated = false,
-                EmailConfirmedStatus = false,
-
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _context.ApplicationUsers.Add(user);
-
-            await _context.SaveChangesAsync();
-
-            return (true, "");
-        }
-
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult Logout()
-        {
-            HttpContext.Session.Clear();
-
-            TempData["Info"] = "Logged out successfully.";
-
-            return RedirectToAction(nameof(Login));
         }
     }
 }

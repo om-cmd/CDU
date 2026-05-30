@@ -1,8 +1,11 @@
-﻿using Domain_Layer.Database;
+﻿using System.Security.Claims;
+using Domain_Layer.Database;
 using Domain_Layer.DbModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace Business_Layer
 {
@@ -10,45 +13,48 @@ namespace Business_Layer
     {
         private readonly AnalysisDbContext _context;
 
-        public AnalysisDbContext Context
-        {
-            get;
-            private set;
-        }
+        public AnalysisDbContext Context { get; }
 
-        public ApplicationUser? CurrentUser
-        {
-            get;
-            private set;
-        }
+        public ApplicationUser? CurrentUser { get; private set; }
+        public string UserAgent { get; set; } 
 
-        public DbSet<ApplicationUser> Users
-            => _context.ApplicationUsers;
+        public IHttpContextAccessor HttpContextAccessor { get; }
 
-        public DbSet<CrimeReport> CrimeReports
-            => _context.CrimeReports;
+        public DbSet<ApplicationUser> Users => _context.ApplicationUsers;
 
-        public UnitOfWork(AnalysisDbContext context, IHttpContextAccessor httpContextAccessor)
+        public DbSet<CrimeReport> CrimeReports => _context.CrimeReports;
+
+        public UnitOfWork(
+            AnalysisDbContext context,
+            IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             Context = context;
+            HttpContextAccessor = httpContextAccessor;
 
-            if (httpContextAccessor.HttpContext != null)
-            {
-                var session = httpContextAccessor.HttpContext.Session;
-                string? userId = null;
+            var httpContext = httpContextAccessor.HttpContext;
 
-                if (session.TryGetValue("UserId", out byte[] userIdBytes))
-                {
-                    userId = Encoding.UTF8.GetString(userIdBytes);
-                }
+            if (httpContext == null)
+                return;
+var userAgent = httpContextAccessor.HttpContext.Request.Headers["User-Agent"];
+if(!string.IsNullOrEmpty(userAgent))
+    UserAgent = userAgent[0].ToString();
+string? ipAddress = null;
 
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    CurrentUser = context.ApplicationUsers
-                        .FirstOrDefault(x => x.UserAccountId == Convert.ToInt32(userId));
-                }
-            }
+if (httpContextAccessor.HttpContext?.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues ipAddresses) == true)
+{
+    ipAddress = ipAddresses.FirstOrDefault();
+}
+ipAddress ??= httpContextAccessor.HttpContext?
+    .Connection
+    .RemoteIpAddress?
+    .ToString();
+
+string username = httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.Actor)?.Value;
+if (!string.IsNullOrWhiteSpace(username))
+{
+    CurrentUser = _context.ApplicationUsers.FirstOrDefault(x => x.UserName == username);
+}
         }
 
         public async Task<int> SaveChangesAsync()

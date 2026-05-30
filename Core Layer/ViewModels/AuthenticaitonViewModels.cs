@@ -57,5 +57,25 @@ namespace Core_Layer.ViewModels
         public string? ImageUrl { get; set; }
         public UserType UserType { get; set; }
     }
+    public class LoginResponseDto
+    {
+        public long UserId { get; set; }
+        public string UserName { get; set; }
+        public string EmailAddress { get; set; }
+        public List<string> Roles { get; set; }
+        public string UserType { get; set; }
+        public string UserImage { get; set; }
+    }
+    public class UserTokens
+    {
+        public long UserId { get; set; }
+        public string Token { get; set; }
+        public string RefreshToken { get; set; }
+        public string UserName { get; set; }
+        public string DeviceType { get; set; }
+        public bool UserStatus { get; set; }
+        public string UserType { get; set; }
+        public string ExpiryTimeUtc { get; set; }
+    }
 
 }
