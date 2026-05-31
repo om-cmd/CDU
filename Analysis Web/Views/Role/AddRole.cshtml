@@ -1,18 +1,65 @@
-@model TModel
+@model Core_Layer.ViewModels.AddRoleViewModel
 
 @{
-    Layout = null;
+    ViewData["Title"] = "Add Role";
 }
 
-<!DOCTYPE html>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-7 col-lg-6">
 
-<html>
-<head>
-    <title>title</title>
-</head>
-<body>
-<div>
-      
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Add Role</h5>
+                    <small class="text-muted">Create a new role for the system</small>
+                </div>
+
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] is string success)
+                    {
+                        <div class="alert alert-success py-2">@success</div>
+                    }
+
+                    <form asp-action="AddRole" asp-controller="Role" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="RoleName" class="form-label">Role Name</label>
+                            <input asp-for="RoleName"
+                                   class="form-control"
+                                   placeholder="Enter role name" />
+                            <span asp-validation-for="RoleName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="RoleDescription" class="form-label">Role Description</label>
+                            <textarea asp-for="RoleDescription"
+                                      class="form-control"
+                                      rows="4"
+                                      placeholder="Enter role description"></textarea>
+                            <span asp-validation-for="RoleDescription" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Add Role
+                            </button>
+
+                            <a asp-action="Index" asp-controller="Role" class="btn btn-light">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
-</body>
-</html>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

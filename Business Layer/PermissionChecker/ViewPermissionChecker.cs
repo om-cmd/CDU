@@ -1,3 +1,4 @@
+using Core_Layer;
 using Core_Layer.HelperMethod;
 using Microsoft.Data.SqlClient;
 
@@ -5,7 +6,7 @@ namespace Business_Layer;
 
 public static class ViewPermissionChecker
 {
-    public static bool HasPermission(long userId, string permissionValue)
+    public static bool HasPermission(int userId, string permissionValue)
     {
         try
         {
@@ -14,8 +15,8 @@ public static class ViewPermissionChecker
                 using (SqlCommand cmd = con.CreateCommand())
                 {
                     cmd.Connection = con;
-                    cmd.CommandText = $"select Case when ISNULL(p.Slug, '') = '' then 0 Else 1 End as HasPermission from CTbl_Permissions p join CTbl_RolePermission rP on p.Id = rP.PermissionId join CTbl_UserRoles uR " +
-                                      $"on rP.RoleId = uR.RoleId join CTbl_Users u on uR.UserId = u.UserId where u.UserId = {userId} and p.Slug = '{permissionValue}'";
+                    cmd.CommandText = $"select Case when ISNULL(p.Slug, '') = '' then 0 Else 1 End as HasPermission from Permissions p join CTbl_RolePermission rP on p.Id = rP.PermissionId join UserRoles uR " +
+                                      $"on rP.RoleId = uR.RoleId join ApplicationUsers u on uR.UserAccountId = u.UserAccountId where u.UserAccountId = {userId} and p.Slug = '{permissionValue}'";
 
                     cmd.CommandType = System.Data.CommandType.Text;
                     cmd.Parameters.AddWithValue("userId", userId);

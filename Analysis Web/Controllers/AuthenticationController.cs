@@ -23,6 +23,10 @@ namespace YourApp.Controllers
         [HttpGet]
         public IActionResult Login(string returnUrl)
         {
+            if (User.Identity.IsAuthenticated && User.Identity != null)
+            {
+                return RedirectToAction("Index", "Home");
+            }
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }
@@ -31,8 +35,6 @@ namespace YourApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginDto dto, string returnUrl)
         {
-            if (ModelState.IsValid)
-            {
                 var response = await _authenticationService.Login(dto);
                 if (response.Success == true)
                 {
@@ -40,15 +42,11 @@ namespace YourApp.Controllers
                 }
                 else
                 {
+                    ViewData["ReturnUrl"] = returnUrl;
+                    ViewBag.Error = response.Message;
                     return View(dto);
                 }
-            }
-            else
-            {
-                ViewData["ReturnUrl"] = returnUrl;
-                ViewBag["Error"] = "Please Fill the Login Form Properly";
-                return View(dto);
-            }
+            
         }
 
         [HttpGet]
@@ -77,6 +75,13 @@ namespace YourApp.Controllers
             {
                 return View(model);
             }
+        }
+
+        [HttpGet]
+        public  IActionResult LogOut()
+        {
+            _authenticationService.Logout();
+            return RedirectToAction("Login", "Authentication");
         }
     }
 }

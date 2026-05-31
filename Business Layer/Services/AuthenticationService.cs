@@ -28,38 +28,119 @@ public class AuthenticationService : IAuthenticationService
                 return (validate.Message, validate.Success, validate.Status);
             }
 
-            if (model.UserType == null)
+            if (model.UserType == 0)
             {
                 model.UserType = UserType.User;
             }
             model.Password = StaticMethods.HashPassword(model.Password).Item2;
-            var users = new ApplicationUser
+            if (model.UserType == UserType.User)
             {
-                FullName = model.FullName,
-                UserName = model.UserName,
-                Email = model.Email,
-                Password = HashPassword.Hash(model.Password),
-                Contact = model.Contact,
-                Department = model.Department,
-                DateOfBirth = model.DateOfBirth,
-                Address = model.Address,
-                City = model.City,
-                State = model.State,
-                Country = model.Country,
-                PostalCode = model.PostalCode,
-                Gender = model.Gender,
-                ImageUrl = model.ImageUrl,
-                UserType = model.UserType,
-                IsActive = true,
-                IsValidated = false,
-                PhoneValidated = false,
-                EmailConfirmedStatus = false,
-                CreatedAt = DateTime.UtcNow
-            };
-            _unitOfWork.Users.Add(users);
-            await _unitOfWork.SaveChangesAsync();
+                var transaction = _unitOfWork._db.Database.BeginTransaction();
+                try
+                {
+ var users = new ApplicationUser
+                {
+                    FullName = model.FullName,
+                    UserName = model.Email,
+                    Email = model.Email,
+                    Password = model.Password,
+                    Contact = model.Contact,
+                    Department = model.Department,
+                    DateOfBirth = model.DateOfBirth,
+                    Address = model.Address,
+                    City = model.City,
+                    State = model.State,
+                    Country = model.Country,
+                    PostalCode = model.PostalCode,
+                    Gender = model.Gender,
+                    ImageUrl = model.ImageUrl,
+                    UserType = model.UserType,
+                    IsActive = true,
+                    IsValidated = false,
+                    PhoneValidated = false,
+                    EmailConfirmedStatus = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _unitOfWork.Users.Add(users);
+                await _unitOfWork.SaveChangesAsync();
+
+                if (_unitOfWork._db.Roles.Any(x => x.RoleName.ToLower() == "user"))
+                {
+                    var role = _unitOfWork._db.Roles.FirstOrDefault(x => x.RoleName.ToLower() == "user");
+                    _unitOfWork._db.UserRoles.Add(new UserRole()
+                    {
+                        CreatedBy =  "System",
+                        RoleId =  role.RoleId,
+                        UserAccountId = users.UserAccountId,
+                        CreatedDate =  DateTime.UtcNow
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                else
+                {
+                    var role = new Role
+                    {
+                        RoleName = "User",
+                        RoleDescription = "For Normal User!!!",
+                        CreatedBy = "System",
+                        CreatedOn = DateTime.UtcNow,
+                        ModifiedBy = "System",
+                        ModifiedOn = DateTime.UtcNow,
+                        Status = "Active"
+                    };
+                    _unitOfWork._db.Roles.Add(role);
+                    await _unitOfWork.SaveChangesAsync();
+                    _unitOfWork._db.UserRoles.Add(new UserRole()
+                    {
+                        CreatedBy =  "System",
+                        RoleId =  role.RoleId,
+                        UserAccountId = users.UserAccountId,
+                        CreatedDate =  DateTime.UtcNow
+                    });
+                    await _unitOfWork.SaveChangesAsync();
+                }
+                transaction.Commit();
+                return ("User Resgitered Successfully!!",true, "00");
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    return ("Unable to add user!!",false, "1");
+
+                }
+               
+            }
+            else
+            {
+                var users = new ApplicationUser
+                {
+                    FullName = model.FullName,
+                    UserName = model.Email,
+                    Email = model.Email,
+                    Password = model.Password,
+                    Contact = model.Contact,
+                    Department = model.Department,
+                    DateOfBirth = model.DateOfBirth,
+                    Address = model.Address,
+                    City = model.City,
+                    State = model.State,
+                    Country = model.Country,
+                    PostalCode = model.PostalCode,
+                    Gender = model.Gender,
+                    ImageUrl = model.ImageUrl,
+                    UserType = model.UserType,
+                    IsActive = true,
+                    IsValidated = false,
+                    PhoneValidated = false,
+                    EmailConfirmedStatus = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _unitOfWork.Users.Add(users);
+                await _unitOfWork.SaveChangesAsync();
             
-            return ("User Resgitered Successfully!!",true, "00");
+                return ("User Resgitered Successfully!!",true, "00");
+            }
+          
         }
         catch (Exception ex)
         {
@@ -114,8 +195,10 @@ public class AuthenticationService : IAuthenticationService
             if(!_unitOfWork.Users.Any(x => x.Email == model.Email)||_unitOfWork.Users.Any(x => x.UserName == model.UserName))
                 return ("NO USER FOUND PLESE REGISTER!!!",false,"404",null);
             var user = _unitOfWork.Users.FirstOrDefault(x => x.Email == model.Email || x.UserName == model.UserName);
-             if(!StaticMethods.VerifyPassword(model.Password, user.Password))
-                 return ("USERNAME OR PASSWORd MISMATCHE!!!",false, "1",null);
+            if (!StaticMethods.VerifyPassword(model.Password, user.Password))
+            {
+                return ("USERNAME OR PASSWORD MISMATCHED!!!",false, "1",null);                
+            }
              var tokens = new LoginResponseDto()
              {
                  EmailAddress = user.Email,
@@ -126,24 +209,27 @@ public class AuthenticationService : IAuthenticationService
 
              };
              var token = StaticMethods.GenTokenkey(tokens);
-             var auth = new AuthenticationProperties()
+             var auth = new AuthenticationProperties
              {
                  AllowRefresh = true,
-                 ExpiresUtc = DateTime.Parse(token.data.ExpiryTimeUtc),
-                 IssuedUtc = DateTime.UtcNow,
-                 IsPersistent = true,
+                 ExpiresUtc = DateTimeOffset.UtcNow.AddHours(2),
+                 IssuedUtc = DateTimeOffset.UtcNow,
+                 IsPersistent = true
              };
-             ClaimsIdentity identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
-             {
-                 identity.AddClaim(new Claim(ClaimTypes.Name, user.FullName));
-                 identity.AddClaim(new Claim(ClaimTypes.Actor, user.Email));
-                 identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.UserAccountId.ToString()));
-                 identity.AddClaim(new Claim("Token", token.data.Token));
-                 identity.AddClaim(new Claim("RToken", token.data.RefreshToken));
-                 identity.AddClaim(new Claim(ClaimTypes.System, user.UserType.ToString()));
-                 
-                 _unitOfWork.HttpContextAccessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-             }
+
+             var identity = new ClaimsIdentity(CookieAuthenticationDefaults.AuthenticationScheme);
+
+             identity.AddClaim(new Claim(ClaimTypes.Name, user.FullName ?? ""));
+             identity.AddClaim(new Claim(ClaimTypes.Actor, user.Email ?? ""));
+             identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.UserAccountId.ToString()));
+             identity.AddClaim(new Claim("Token", token.data.Token));
+             identity.AddClaim(new Claim("RToken", token.data.RefreshToken));
+             identity.AddClaim(new Claim(ClaimTypes.Role, user.UserType.ToString()));
+
+             await _unitOfWork.HttpContextAccessor.HttpContext!.SignInAsync(
+                 CookieAuthenticationDefaults.AuthenticationScheme,
+                 new ClaimsPrincipal(identity),
+                 auth);
              LoginResponseDto dto = new LoginResponseDto()
              {
                  EmailAddress = user.Email,
@@ -158,5 +244,12 @@ public class AuthenticationService : IAuthenticationService
         {
             return (ex.Message.ToString(),false, "1",null);   
         }
+    }
+
+    public async void Logout()
+    {
+        await _unitOfWork.HttpContextAccessor.HttpContext.SignOutAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme);
+        _unitOfWork.HttpContextAccessor.HttpContext.Session.Clear();
     }
 }

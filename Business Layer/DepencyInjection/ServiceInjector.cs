@@ -10,6 +10,7 @@ public static class ServiceInjector
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ICrimeReportInterface, CrimeReportService>();
 
         return services;

@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Core_Layer.ViewModels
@@ -9,7 +11,7 @@ namespace Core_Layer.ViewModels
     public class LoginDto
     {
         public string Email { get; set; } = "";
-
+[NotMapped]
         public string UserName { get; set; } = "";
         public string Password { get; set; } = "";
         public bool RememberMe { get; set; }
@@ -21,13 +23,12 @@ namespace Core_Layer.ViewModels
         [Required]
         public string FullName { get; set; }
 
-        [Required]
-        public string UserName { get; set; }
+
 
         [Required]
         [EmailAddress]
         public string Email { get; set; }
-
+        public string? UserName { get; set; } 
         [Required]
         [MinLength(6)]
         public string Password { get; set; }

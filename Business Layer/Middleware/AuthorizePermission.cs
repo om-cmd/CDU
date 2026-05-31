@@ -78,7 +78,7 @@ public class AuthorizePermission : TypeFilterAttribute
                     return;
                 }
 
-                if (data.Data.UserType == "1")
+                if (data.Data.UserType == "SuperAdmin")
                 {
                     await next();
                     return;

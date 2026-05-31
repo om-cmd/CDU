@@ -1,22 +1,24 @@
 using Microsoft.Extensions.Configuration;
 
-namespace Core_Layer.HelperMethod;
-
-public static class DefaultConfiguration
+namespace Core_Layer
 {
-    public static IConfiguration staticConfiguration { get; private set; }
-
-    public static void SetStaticConfiguration(this IConfiguration configuration)
+    public static class DefaultConfiguration
     {
-        staticConfiguration = configuration;
-    }
-    public static string ConnectionString { get; private set; }
+        public static IConfiguration? StaticConfiguration { get; private set; }
 
-    public static void setConnectionString(string connectionString)
-    {
-        if (string.IsNullOrEmpty(connectionString))
+        public static string? ConnectionString { get; private set; }
+
+        public static void SetStaticConfiguration(this IConfiguration configuration)
         {
-            ConnectionString = connectionString;
+            StaticConfiguration = configuration;
+        }
+
+        public static void SetConnectionString(string connectionString)
+        {
+            if (!string.IsNullOrWhiteSpace(connectionString))
+            {
+                ConnectionString = connectionString;
+            }
         }
     }
 }

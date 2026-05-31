@@ -10,106 +10,153 @@ namespace Core_Layer.HelperMethod;
 
 public static class StaticMethods
 {
-    private static string ciphers = "!@Parlad@#1";
+    private static readonly string ciphers = "!@Parlad@#1MySecretKey12";
 
-    public static Tuple<string, string> HashPassword(string password)
+    public static Tuple<string, string> HashPassword(string plainText)
     {
         string salt = BCrypt.Net.BCrypt.GenerateSalt(12);
-        string hashPassword = BCrypt.Net.BCrypt.HashPassword(password, salt);
-        return new Tuple<string, string>(hashPassword, salt);
+        string hashPassword = BCrypt.Net.BCrypt.HashPassword(plainText, salt);
+        return Tuple.Create(salt, hashPassword);
     }
 
-    public static bool VerifyPassword(string password, string hashedPassword)
+    public static bool VerifyPassword(string password, string passwordHash)
     {
-        return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+        return BCrypt.Net.BCrypt.Verify(password, passwordHash);
     }
 
-    #region JWT Related
-
-    public static string EncryptUserData(LoginResponseDto user, string issueDate)
+    private static byte[] GetTripleDesKey(string issueDate)
     {
         DateTime issuedDateS = DateTime.Parse(issueDate);
 
+        var rawKey = ciphers + issuedDateS.ToString("ssmmhhddMMyy");
+
+        using var sha256 = SHA256.Create();
+
+        return sha256
+            .ComputeHash(Encoding.UTF8.GetBytes(rawKey))
+            .Take(24)
+            .ToArray();
+    }
+
+    public static string EncryptUserData(LoginResponseDto user, string issueDate)
+    {
         string jsonData = JsonConvert.SerializeObject(user);
         byte[] inputArray = Encoding.UTF8.GetBytes(jsonData);
 
         using TripleDES tripleDes = TripleDES.Create();
 
-        tripleDes.Key = Encoding.UTF8.GetBytes(ciphers + issuedDateS.ToString("ssmmhhddMMyy"));
+        tripleDes.Key = GetTripleDesKey(issueDate);
         tripleDes.Mode = CipherMode.ECB;
         tripleDes.Padding = PaddingMode.PKCS7;
 
-        ICryptoTransform cryptoTransform = tripleDes.CreateEncryptor();
-        byte[] resultArray = cryptoTransform.TransformFinalBlock(inputArray, 0, inputArray.Length);
+        using ICryptoTransform cryptoTransform = tripleDes.CreateEncryptor();
+
+        byte[] resultArray = cryptoTransform.TransformFinalBlock(
+            inputArray,
+            0,
+            inputArray.Length
+        );
 
         return Convert.ToBase64String(resultArray);
     }
+
     public static List<Claim> GetClaims(LoginResponseDto model)
     {
         string issuedDate = DateTime.Now.ToString("G");
-        model.UserImage = string.IsNullOrEmpty(model.UserImage) ? "user.png" : model.UserImage;
-        var userData = StaticMethods.EncryptUserData(model, issuedDate);
-        var claims = new List<Claim>
+
+        model.UserImage = string.IsNullOrEmpty(model.UserImage)
+            ? "user.png"
+            : model.UserImage;
+
+        var userData = EncryptUserData(model, issuedDate);
+
+        return new List<Claim>
         {
             new Claim("UserToken", userData),
             new Claim("IssuedDate", issuedDate),
-            new Claim(ClaimTypes.Name, model.EmailAddress??model.EmailAddress),
+            new Claim(ClaimTypes.Name, model.EmailAddress ?? string.Empty)
         };
-        return claims;
     }
 
     public static string GetRToken()
     {
         return Guid.NewGuid().ToString("N");
     }
-public static (UserTokens data,string status,bool sucess) GenTokenkey(LoginResponseDto model)
+
+    public static (UserTokens? data, string status, bool success) GenTokenkey(LoginResponseDto model)
+    {
+        try
         {
-            try
-            {
-                UserTokens response = new UserTokens();
-                response = new UserTokens();
-                if (model == null) throw new ArgumentException(nameof(model));
-                // Get secret key
-                var key = Encoding.ASCII.GetBytes(DefaultConfiguration.staticConfiguration.GetSection("JsonWebTokenKeys:IssuerSigningKey").Value);
-                DateTime notBefore = new DateTimeOffset(DateTime.Now).DateTime;
-                DateTime expires = new DateTimeOffset(DateTime.Now.AddMinutes(Convert.ToInt32(DefaultConfiguration.staticConfiguration.GetSection("JsonWebTokenKeys:ValidationLifeTimeInMin").Value ?? "5"))).DateTime;
+            if (model == null)
+                throw new ArgumentNullException(nameof(model));
 
-                response.ExpiryTimeUtc = expires.ToUniversalTime().ToString("s");
-                var JWToken = new JwtSecurityToken(
-                    issuer: DefaultConfiguration.staticConfiguration.GetSection("JsonWebTokenKeys:ValidIssuer").Value,
-                    audience: DefaultConfiguration.staticConfiguration.GetSection("JsonWebTokenKeys:ValidAudience").Value,
-                    claims: GetClaims(model),
-                    notBefore: notBefore,
-                    expires: expires,
-                    signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256));
-                response.Token = new JwtSecurityTokenHandler().WriteToken(JWToken);
-                response.RefreshToken = GetRToken();
-                response.UserName = model.EmailAddress;
-                response.UserId = model.UserId;
-                response.UserType = model.UserType;
-                response.UserStatus = true;
-                return (response, "00", true);
+            var configuration = DefaultConfiguration.StaticConfiguration
+                ?? throw new InvalidOperationException("Configuration is not initialized.");
 
-            }
-            catch (Exception ex)
+            var issuerSigningKey = configuration["JsonWebTokenKeys:IssuerSigningKey"];
+
+            if (string.IsNullOrWhiteSpace(issuerSigningKey))
+                throw new InvalidOperationException("JWT IssuerSigningKey is missing.");
+
+            var key = Encoding.UTF8.GetBytes(issuerSigningKey);
+
+            var validationMinutesText = configuration["JsonWebTokenKeys:ValidationLifeTimeInMin"];
+
+            int validationMinutes = string.IsNullOrWhiteSpace(validationMinutesText)
+                ? 5
+                : Convert.ToInt32(validationMinutesText);
+
+            DateTime issueDate = DateTime.Now;
+            DateTime expires = issueDate.AddMinutes(validationMinutes);
+
+            var response = new UserTokens
             {
-                return (null, ex.Message, false);
-            }
+                ExpiryTimeUtc = expires.ToUniversalTime().ToString("s"),
+                RefreshToken = GetRToken(),
+                UserName = model.EmailAddress,
+                UserId = model.UserId,
+                UserType = model.UserType,
+                UserStatus = true
+            };
+
+            var jwtToken = new JwtSecurityToken(
+                issuer: configuration["JsonWebTokenKeys:ValidIssuer"],
+                audience: configuration["JsonWebTokenKeys:ValidAudience"],
+                claims: GetClaims(model),
+                notBefore: issueDate,
+                expires: expires,
+                signingCredentials: new SigningCredentials(
+                    new SymmetricSecurityKey(key),
+                    SecurityAlgorithms.HmacSha256)
+            );
+
+            response.Token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+
+            return (response, "00", true);
         }
+        catch
+        {
+            return (null, "1", false);
+        }
+    }
+
     public static LoginResponseDto? DecryptUserData(string encryptedData, string issueDate)
     {
-        DateTime issuedDateS = DateTime.Parse(issueDate);
-
         byte[] inputArray = Convert.FromBase64String(encryptedData);
 
         using TripleDES tripleDes = TripleDES.Create();
 
-        tripleDes.Key = Encoding.UTF8.GetBytes(ciphers + issuedDateS.ToString("ssmmhhddMMyy"));
+        tripleDes.Key = GetTripleDesKey(issueDate);
         tripleDes.Mode = CipherMode.ECB;
         tripleDes.Padding = PaddingMode.PKCS7;
 
-        ICryptoTransform cryptoTransform = tripleDes.CreateDecryptor();
-        byte[] resultArray = cryptoTransform.TransformFinalBlock(inputArray, 0, inputArray.Length);
+        using ICryptoTransform cryptoTransform = tripleDes.CreateDecryptor();
+
+        byte[] resultArray = cryptoTransform.TransformFinalBlock(
+            inputArray,
+            0,
+            inputArray.Length
+        );
 
         string jsonData = Encoding.UTF8.GetString(resultArray);
 
@@ -123,12 +170,18 @@ public static (UserTokens data,string status,bool sucess) GenTokenkey(LoginRespo
             return (null, "401", "Invalid token provided");
         }
 
-        token = token.Replace("Bearer ", "");
+        token = token.Replace("Bearer ", "").Trim();
 
-        var handler = new JwtSecurityTokenHandler();
+        var configuration = DefaultConfiguration.StaticConfiguration;
 
-        var secretKey = DefaultConfiguration.staticConfiguration
-            .GetSection("JsonWebTokenKeys:IssuerSigningKey").Value;
+        if (configuration == null)
+        {
+            return (null, "500", "Configuration is not initialized");
+        }
+
+        var secretKey = configuration["JsonWebTokenKeys:IssuerSigningKey"];
+        var validIssuer = configuration["JsonWebTokenKeys:ValidIssuer"];
+        var validAudience = configuration["JsonWebTokenKeys:ValidAudience"];
 
         if (string.IsNullOrWhiteSpace(secretKey))
         {
@@ -139,21 +192,27 @@ public static (UserTokens data,string status,bool sucess) GenTokenkey(LoginRespo
 
         try
         {
+            var handler = new JwtSecurityTokenHandler();
+
             handler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
+
                 ValidateIssuer = true,
-                ValidIssuer = DefaultConfiguration.staticConfiguration
-                    .GetSection("JsonWebTokenKeys:ValidIssuer").Value,
+                ValidIssuer = validIssuer,
+
                 ValidateAudience = true,
-                ValidAudience = DefaultConfiguration.staticConfiguration
-                    .GetSection("JsonWebTokenKeys:ValidAudience").Value,
+                ValidAudience = validAudience,
+
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             }, out SecurityToken validatedToken);
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
+            if (validatedToken is not JwtSecurityToken jwtToken)
+            {
+                return (null, "401", "Invalid token type");
+            }
 
             string? userToken = jwtToken.Claims
                 .FirstOrDefault(x => x.Type == "UserToken")?.Value;
@@ -168,6 +227,11 @@ public static (UserTokens data,string status,bool sucess) GenTokenkey(LoginRespo
 
             var userData = DecryptUserData(userToken, issuedDate);
 
+            if (userData == null)
+            {
+                return (null, "401", "Unable to decrypt user data");
+            }
+
             return (userData, "200", "Token parsed successfully");
         }
         catch (SecurityTokenExpiredException)
@@ -179,6 +243,4 @@ public static (UserTokens data,string status,bool sucess) GenTokenkey(LoginRespo
             return (null, "401", "Invalid token provided");
         }
     }
-
-    #endregion
 }
