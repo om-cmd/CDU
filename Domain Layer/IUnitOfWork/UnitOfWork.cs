@@ -1,64 +1,76 @@
-﻿using Domain_Layer.Database;
+﻿using System;
+using System.Security.Claims;
+using Domain_Layer.Database;
 using Domain_Layer.DbModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using System.Text;
+using Microsoft.Extensions.Primitives;
 
 namespace Business_Layer
 {
     public class UnitOfWork : IUnitOfWork
     {
-        private readonly AnalysisDbContext _context;
+        public AnalysisDbContext _db { get; }
 
-        public AnalysisDbContext Context
+        public AnalysisDbContext Db { get; }
+        public IHttpContextAccessor HttpContextAccessor { get; }
+
+        public ApplicationUser? CurrentUser { get; private set; }
+
+        public string? UserAgent { get; private set; }
+
+        public DbSet<ApplicationUser> Users => _db.ApplicationUsers;
+
+        public DbSet<CrimeReport> CrimeReports => _db.CrimeReports;
+
+        public UnitOfWork(
+            AnalysisDbContext db,
+            IHttpContextAccessor httpContextAccessor)
         {
-            get;
-            private set;
-        }
+            _db = db ?? throw new ArgumentNullException(nameof(db));
+            HttpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
 
-        public ApplicationUser? CurrentUser
-        {
-            get;
-            private set;
-        }
+            var httpContext = HttpContextAccessor.HttpContext;
 
-        public DbSet<ApplicationUser> Users
-            => _context.ApplicationUsers;
+            if (httpContext == null)
+                return;
 
-        public DbSet<CrimeReport> CrimeReports
-            => _context.CrimeReports;
+            var userAgent = httpContext.Request.Headers["User-Agent"];
 
-        public UnitOfWork(AnalysisDbContext context, IHttpContextAccessor httpContextAccessor)
-        {
-            _context = context;
-            Context = context;
-
-            if (httpContextAccessor.HttpContext != null)
+            if (!string.IsNullOrWhiteSpace(userAgent))
             {
-                var session = httpContextAccessor.HttpContext.Session;
-                string? userId = null;
+                UserAgent = userAgent.ToString();
+            }
 
-                if (session.TryGetValue("UserId", out byte[] userIdBytes))
-                {
-                    userId = Encoding.UTF8.GetString(userIdBytes);
-                }
+            string? ipAddress = null;
 
-                if (!string.IsNullOrEmpty(userId))
-                {
-                    CurrentUser = context.ApplicationUsers
-                        .FirstOrDefault(x => x.UserAccountId == Convert.ToInt32(userId));
-                }
+            if (httpContext.Request.Headers.TryGetValue("X-Forwarded-For", out StringValues forwardedIps))
+            {
+                ipAddress = forwardedIps.FirstOrDefault();
+            }
+
+            ipAddress ??= httpContext.Connection.RemoteIpAddress?.ToString();
+
+            var email = httpContext.User.Claims
+                .FirstOrDefault(x =>
+                    x.Type == ClaimTypes.Actor
+                )?.Value;
+
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                CurrentUser = _db.ApplicationUsers
+                    .FirstOrDefault(x => x.Email == email);
             }
         }
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            return await _db.SaveChangesAsync();
         }
 
         public void Dispose()
         {
-            _context.Dispose();
+            GC.SuppressFinalize(this);
         }
     }
 }

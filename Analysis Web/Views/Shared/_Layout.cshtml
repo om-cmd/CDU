@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -15,7 +16,9 @@
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
-
+@{
+    var userId = Context.User.Claims.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+}
 <body class="">
     <div class="wrapper">
 
@@ -54,6 +57,15 @@
                             <p>Crime Report</p>
                         </a>
                     </li>
+                    @if (Business_Layer.ViewPermissionChecker.HasPermission(Convert.ToInt32(userId), "RoleList"))
+                    {
+                        <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Role" ? "active" : "")">
+                            <a class="nav-link" asp-controller="Role" asp-action="Index">
+                                <i class="material-icons">Role</i>
+                                <p>Roles</p>
+                            </a>
+                        </li>
+                    }
 
                 </ul>
             </div>
@@ -117,7 +129,7 @@
                                     <a class="dropdown-item" href="#">Profile</a>
                                     <a class="dropdown-item" href="#">Settings</a>
                                     <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="#">Log out</a>
+                                    <a class="dropdown-item" href="/Authentication/Logout">Log out</a>
                                 </div>
                             </li>
                         </ul>
@@ -160,7 +172,7 @@
 
     <!-- Material Dashboard JS -->
     <script src="~/assets/js/material-dashboard.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>

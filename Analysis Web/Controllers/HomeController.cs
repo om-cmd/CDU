@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using System.Diagnostics;
 using Analysis_Web.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Analysis_Web.Controllers
 {
@@ -17,7 +18,7 @@ namespace Analysis_Web.Controllers
             _env = env;
             _cache = cache;
         }
-
+[Authorize]
         public IActionResult Index()
         {
             var csvPath = Path.Combine(_env.WebRootPath, "CSV", "Crime_Reports_20260508.csv");

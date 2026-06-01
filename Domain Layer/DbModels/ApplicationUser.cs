@@ -93,5 +93,7 @@ namespace Domain_Layer.DbModels
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public Guid RowStamp { get; set; } = Guid.NewGuid();
+        
+        public virtual ICollection<UserRole> UserRoles { get; set; }
     }
 }
