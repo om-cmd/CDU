@@ -19,6 +19,7 @@ namespace Analysis_Web.Services
         Task<int> BulkInsertAsync(IEnumerable<CrimeReport> reports);
         Task<HashSet<string>> GetAllFileNumbersAsync();
         Task<Dictionary<string, int>> GetFileNumberToIdMapAsync();
+        Task<int> GetTotalCountAsync();   
     }
 
     public class CrimeReportStats

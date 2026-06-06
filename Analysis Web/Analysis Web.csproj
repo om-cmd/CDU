@@ -18,8 +18,4 @@
     <ProjectReference Include="..\Core Layer\Core Layer.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\CSV\" />
-  </ItemGroup>
-
 </Project>

@@ -20,45 +20,10 @@ namespace Analysis_Web.Controllers
             _logger = logger;
         }
 
-        public async Task<IActionResult> CrimeReport(
-            string? search, CrimeType? crimeType, int? year,
-            string? neighborhood, string? sortBy, bool ascending = false,
-            int page = 1, int pageSize = DefaultPageSize)
-        {
-            pageSize = Math.Clamp(pageSize, 5, 100);
-            page = Math.Max(1, page);
-
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-            {
-                var (reports, total) = await _service.GetPagedAsync(
-                    page, pageSize, search, crimeType, year, neighborhood, sortBy, ascending);
-
-                return Ok(new
-                {
-                    reports = reports.Select(MapToVm),
-                    totalCount = total,
-                    page,
-                    pageSize
-                });
-            }
-
-            var vm = new CrimeReportIndexViewModel
-            {
-                TotalCount = 0,
-                Page = 1,
-                PageSize = pageSize,
-                Search = search,
-                SortBy = sortBy,
-                Ascending = ascending,
-            };
-            return View("~/Views/CrimeData/CrimeReport.cshtml", vm);
-        }
-
-    
-        public IActionResult Create()
+        public IActionResult CrimeReport()
             => View("~/Views/CrimeData/CrimeReport.cshtml");
 
-    
+        [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
             var report = await _service.GetByIdAsync(id);
@@ -104,7 +69,6 @@ namespace Analysis_Web.Controllers
             if (string.IsNullOrWhiteSpace(vm.FileNumber))
                 return BadRequest(new { errors = new { FileNumber = new[] { "File number is required." } } });
 
-            // Duplicate check: same file number on a DIFFERENT record
             if (await _service.FileNumberExistsAsync(vm.FileNumber, excludeId: id))
                 return BadRequest(new { errors = new { FileNumber = new[] { "This file number already exists on another record." } } });
 
@@ -123,7 +87,6 @@ namespace Analysis_Web.Controllers
             }
         }
 
-      
         [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
@@ -134,26 +97,6 @@ namespace Analysis_Web.Controllers
             return Ok(new { message = "Deleted successfully." });
         }
 
-        public async Task<IActionResult> Dashboard()
-        {
-            var stats = await _service.GetStatsAsync();
-            return Ok(stats);
-        }
-
-        [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> BulkDelete([FromBody] int[] ids)
-        {
-            if (ids == null || ids.Length == 0)
-                return BadRequest(new { message = "No IDs provided." });
-
-            int deleted = 0;
-            foreach (var id in ids)
-                if (await _service.DeleteAsync(id)) deleted++;
-
-            return Ok(new { deleted, total = ids.Length });
-        }
-
-   
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> ImportCsv(IFormFile file, bool skipDuplicates = true)
         {
@@ -194,7 +137,6 @@ namespace Analysis_Web.Controllers
                 int iLoc = Get("Location");
                 int iLat = Get("Reporting Area Lat");
                 int iLon = Get("Reporting Area Lon");
-
 
                 var existingFileNumbers = skipDuplicates
                     ? await _service.GetAllFileNumbersAsync()
@@ -260,7 +202,13 @@ namespace Analysis_Web.Controllers
                     inserted += await _service.BulkInsertAsync(batch);
                 }
 
-                return Ok(new { inserted, skipped, errors, total = lines.Count - 1 });
+                return Ok(new
+                {
+                    inserted,
+                    skipped,
+                    errors,
+                    total = lines.Count - 1
+                });
             }
             catch (Exception ex)
             {
@@ -269,7 +217,21 @@ namespace Analysis_Web.Controllers
             }
         }
 
+   
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkDelete([FromBody] int[] ids)
+        {
+            if (ids == null || ids.Length == 0)
+                return BadRequest(new { message = "No IDs provided." });
 
+            int deleted = 0;
+            foreach (var id in ids)
+                if (await _service.DeleteAsync(id)) deleted++;
+
+            return Ok(new { deleted, total = ids.Length });
+        }
+
+       
         private Dictionary<string, string[]> ModelStateErrors()
             => ModelState
                 .Where(kv => kv.Value?.Errors.Count > 0)

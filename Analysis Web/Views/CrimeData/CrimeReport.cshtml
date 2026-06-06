@@ -1,1011 +1,962 @@
 ﻿@using Domain_Layer.DbModels.Enum
 @{
-    ViewData["Title"] = "Crime Reports";
+    ViewData["Title"] = "Crime Report";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=Lato:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 
 <style>
-    /* ── PAGE HEADER ── */
-    .pg-head {
-        background: var(--ink);
-        border-bottom: 3px solid var(--gold);
-        padding: 1.25rem 2rem;
+    /* (keep all your existing CSS here — unchanged) */
+    .content-wrapper, .container-fluid, main > .container,
+    main > .container-fluid, .page-content, .main-content {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .cr-page {
+        display: flex;
+        flex-direction: column;
+        min-height: calc(100vh - 56px);
+        background: #f1f5f9;
+        font-family: 'Inter', sans-serif;
+        font-size: .875rem;
+        color: #111827;
+    }
+
+    .cr-topbar {
+        background: #0f172a;
+        border-bottom: 2px solid #c9a227;
+        padding: .55rem 1.25rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.5rem;
-        border-radius: var(--r-lg);
-    }
-
-    .pg-head-left {
-        display: flex;
-        align-items: center;
-        gap: .9rem;
-    }
-
-    /* Crime Report icon badge — pencil on clipboard, distinct from CrimeData's database icon */
-    .pg-icon-badge {
-        width: 44px;
-        height: 44px;
-        background: var(--gold);
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--ink);
         flex-shrink: 0;
     }
 
-    .pg-head h1 {
-        font-family: 'Syne', sans-serif;
-        font-weight: 800;
-        font-size: 1.3rem;
+    .cr-topbar-left {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+    }
+
+    .cr-topbar-icon {
+        width: 28px;
+        height: 28px;
+        background: #c9a227;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0f172a;
+        flex-shrink: 0;
+    }
+
+    .cr-topbar-title {
+        font-size: .88rem;
+        font-weight: 600;
         color: #fff;
-        letter-spacing: .2px;
         line-height: 1.1;
     }
 
-    .pg-head .sub {
-        font-size: .73rem;
-        color: #8fa3bb;
-        font-weight: 500;
-        letter-spacing: .5px;
-        text-transform: uppercase;
-        margin-top: .15rem;
-    }
-
-    .head-actions {
-        display: flex;
-        gap: .5rem;
-        flex-wrap: wrap;
-    }
-
-    /* ── BUTTONS ── */
-    .btn-primary {
-        background: var(--gold);
-        color: var(--ink);
-        border: none;
-        border-radius: var(--r);
-        padding: .55rem 1.2rem;
-        font-family: 'Syne', sans-serif;
-        font-size: .85rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        transition: background var(--transit), transform var(--transit);
-        text-decoration: none;
-    }
-
-        .btn-primary:hover {
-            background: #b8952e;
-            transform: translateY(-1px);
-            color: var(--ink);
-        }
-
-    .btn-import {
-        background: rgba(255,255,255,.12);
-        color: #fff;
-        border: 1px solid rgba(255,255,255,.25);
-        border-radius: var(--r);
-        padding: .53rem 1.1rem;
-        font-family: 'Lato', sans-serif;
-        font-size: .84rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: .4rem;
-        transition: background var(--transit);
-    }
-
-        .btn-import:hover {
-            background: rgba(255,255,255,.22);
-        }
-
-    .btn-back {
-        background: rgba(255,255,255,.08);
-        color: #cdd8e8;
-        border: 1px solid rgba(255,255,255,.15);
-        border-radius: var(--r);
-        padding: .48rem .95rem;
-        font-family: 'Lato', sans-serif;
-        font-size: .83rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        text-decoration: none;
-        transition: background var(--transit);
-    }
-
-        .btn-back:hover {
-            background: rgba(255,255,255,.16);
-            color: #fff;
-        }
-
-    /* ── FORM CARD ── */
-    .form-card {
-        background: var(--white);
-        border: 1px solid var(--line);
-        border-radius: var(--r-lg);
-        box-shadow: var(--sh);
-        overflow: hidden;
-        margin-bottom: 1.25rem;
-    }
-
-    .form-card-head {
-        background: #f9fafc;
-        border-bottom: 1px solid var(--line);
-        padding: .85rem 1.4rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: .5rem;
-    }
-
-    .form-card-head-title {
-        font-family: 'Syne', sans-serif;
-        font-size: .95rem;
-        font-weight: 800;
-        color: var(--ink);
-        display: flex;
-        align-items: center;
-        gap: .5rem;
-    }
-
-    .mode-badge {
+    .cr-topbar-sub {
         font-size: .66rem;
-        font-weight: 700;
-        letter-spacing: .5px;
-        text-transform: uppercase;
-        padding: .2rem .5rem;
-        border-radius: 20px;
-        font-family: 'Lato', sans-serif;
+        color: #94a3b8;
+        letter-spacing: .3px;
+        margin-top: 1px;
     }
 
-        .mode-badge.create {
-            background: var(--green-lt);
-            color: var(--green);
-        }
-
-        .mode-badge.edit {
-            background: var(--amber-lt);
-            color: var(--amber);
-        }
-
-    .form-card-body {
-        padding: 1.4rem;
-    }
-
-    .form-card-foot {
-        border-top: 1px solid var(--line);
-        padding: .85rem 1.4rem;
-        background: #f9fafc;
+    .cr-topbar-right {
         display: flex;
-        gap: .5rem;
+        align-items: center;
+        gap: .45rem;
+    }
+
+    .cr-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .2rem .6rem;
+        border-radius: 20px;
+        font-size: .66rem;
+        font-weight: 600;
+        letter-spacing: .4px;
+        text-transform: uppercase;
+    }
+
+        .cr-pill.create {
+            background: #1d4ed820;
+            color: #60a5fa;
+            border: 1px solid #1d4ed840;
+        }
+
+        .cr-pill.edit {
+            background: #92400e20;
+            color: #fbbf24;
+            border: 1px solid #92400e40;
+        }
+
+    .cr-pill-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .cr-edit-strip {
+        display: none;
+        background: #fffbeb;
+        border-bottom: 1px solid #fef3c7;
+        padding: .38rem 1.25rem;
+        align-items: center;
+        gap: 1.5rem;
+        font-size: .72rem;
+        color: #92400e;
+        font-family: 'DM Mono', monospace;
         flex-wrap: wrap;
     }
 
-    /* ── FORM GRID ── */
-    .drw-section {
-        margin-bottom: 1.25rem;
+        .cr-edit-strip.show {
+            display: flex;
+        }
+
+        .cr-edit-strip .es-label {
+            opacity: .6;
+        }
+
+        .cr-edit-strip .es-val {
+            font-weight: 500;
+        }
+
+        .cr-edit-strip .es-id {
+            color: #2563eb;
+        }
+
+    .cr-body {
+        display: flex;
+        flex: 1;
+        min-height: 0;
     }
 
-    .drw-section-title {
-        font-size: .67rem;
-        font-weight: 700;
-        color: var(--muted);
+    .cr-sidebar {
+        width: 190px;
+        flex-shrink: 0;
+        background: #fff;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cr-sidebar-head {
+        padding: .55rem .85rem;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: .63rem;
+        font-weight: 600;
+        color: #94a3b8;
+        letter-spacing: .6px;
         text-transform: uppercase;
-        letter-spacing: .8px;
-        border-bottom: 1px solid var(--line);
-        padding-bottom: .4rem;
-        margin-bottom: .9rem;
+    }
+
+    .cr-sidebar-item {
         display: flex;
         align-items: center;
-        gap: .35rem;
+        gap: .45rem;
+        padding: .45rem .85rem;
+        font-size: .76rem;
+        font-weight: 500;
+        color: #374151;
+        border-left: 2px solid transparent;
+        cursor: pointer;
+        transition: all .12s;
+        text-decoration: none;
+        background: none;
+        border-right: none;
+        border-top: none;
+        border-bottom: none;
+        text-align: left;
+        width: 100%;
     }
 
-    .drw-grid {
+        .cr-sidebar-item:hover {
+            background: #f8fafc;
+            color: #111827;
+        }
+
+        .cr-sidebar-item.active {
+            border-left-color: #2563eb;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .cr-sidebar-item.active-edit {
+            border-left-color: #d97706;
+            background: #fffbeb;
+            color: #d97706;
+        }
+
+        .cr-sidebar-item svg {
+            opacity: .55;
+            flex-shrink: 0;
+        }
+
+        .cr-sidebar-item.active svg,
+        .cr-sidebar-item.active-edit svg {
+            opacity: 1;
+        }
+
+    .cr-sidebar-divider {
+        height: 1px;
+        background: #f1f5f9;
+        margin: .2rem 0;
+    }
+
+    .cr-sidebar-id {
+        display: none;
+        margin-top: auto;
+        padding: .6rem .85rem;
+        border-top: 1px solid #f1f5f9;
+        font-family: 'DM Mono', monospace;
+        font-size: .67rem;
+        color: #94a3b8;
+    }
+
+        .cr-sidebar-id.show {
+            display: block;
+        }
+
+        .cr-sidebar-id strong {
+            color: #2563eb;
+            display: block;
+            font-size: .73rem;
+            margin-top: 1px;
+        }
+
+    .cr-loading-state {
+        display: none;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: .65rem;
+        color: #6b7280;
+        font-size: .82rem;
+        padding: 2rem;
+    }
+
+        .cr-loading-state.show {
+            display: flex;
+        }
+
+    .cr-load-spin {
+        width: 28px;
+        height: 28px;
+        border: 2.5px solid #e5e7eb;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin .6s linear infinite;
+    }
+
+    .cr-main {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+    }
+
+    .cr-form-body {
+        flex: 1;
+    }
+
+    .cr-section {
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        padding: .85rem 1.25rem;
+    }
+
+    .cr-section-title {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        font-size: .67rem;
+        font-weight: 600;
+        letter-spacing: .6px;
+        text-transform: uppercase;
+        color: #6b7280;
+        margin-bottom: .7rem;
+        padding-bottom: .45rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .cr-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: .8rem 1rem;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: .55rem .8rem;
     }
 
-        .drw-grid .full {
+        .cr-grid .g-full {
             grid-column: 1 / -1;
         }
 
-    .fg-drw {
+        .cr-grid .g-half {
+            grid-column: span 1;
+        }
+
+        .cr-grid .g-two {
+            grid-column: span 2;
+        }
+
+    .cr-field {
         display: flex;
         flex-direction: column;
-        gap: .25rem;
+        gap: .18rem;
     }
 
-        .fg-drw label {
-            font-size: .69rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: .5px;
-        }
-
-            .fg-drw label .req {
-                color: var(--red);
-            }
-
-        .fg-drw input, .fg-drw select, .fg-drw textarea {
-            border: 1.5px solid var(--line);
-            border-radius: var(--r);
-            padding: .46rem .75rem;
-            font-size: .875rem;
-            color: var(--ink);
-            background: var(--white);
-            font-family: 'Lato', sans-serif;
-            transition: border-color var(--transit), box-shadow var(--transit);
-            width: 100%;
-        }
-
-            .fg-drw input:focus, .fg-drw select:focus, .fg-drw textarea:focus {
-                outline: none;
-                border-color: var(--blue);
-                box-shadow: 0 0 0 3px rgba(18,70,160,.1);
-            }
-
-            .fg-drw input.err, .fg-drw select.err {
-                border-color: var(--red);
-            }
-
-        .fg-drw .field-err {
-            font-size: .72rem;
-            color: var(--red);
+        .cr-field label {
+            font-size: .68rem;
             font-weight: 600;
-            margin-top: .1rem;
-            display: none;
+            color: #4b5563;
         }
 
-            .fg-drw .field-err.show {
+            .cr-field label .req {
+                color: #ef4444;
+                margin-left: 1px;
+            }
+
+        .cr-field input, .cr-field select {
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: .35rem .6rem;
+            font-size: .82rem;
+            color: #111827;
+            background: #fff;
+            font-family: 'Inter', sans-serif;
+            transition: border-color .12s, box-shadow .12s;
+            width: 100%;
+            height: 31px;
+        }
+
+            .cr-field input:focus, .cr-field select:focus {
+                outline: none;
+                border-color: #2563eb;
+                box-shadow: 0 0 0 2px rgba(37,99,235,.1);
+            }
+
+            .cr-field input.has-err, .cr-field select.has-err {
+                border-color: #ef4444;
+            }
+
+        .cr-field .field-err {
+            font-size: .67rem;
+            color: #ef4444;
+            font-weight: 500;
+            display: none;
+            margin-top: 1px;
+        }
+
+            .cr-field .field-err.show {
                 display: block;
             }
 
-        .fg-drw .hint {
-            font-size: .69rem;
-            color: var(--muted);
-            margin-top: .15rem;
+        .cr-field .hint {
+            font-size: .66rem;
+            color: #9ca3af;
+            margin-top: 1px;
         }
 
-    /* ── SAVE BUTTONS ── */
-    .btn-save {
-       
-        border: none;
-        border-radius: var(--r);
-        padding: .52rem 1.3rem;
-        font-size: .875rem;
-        font-weight: 700;
-        cursor: pointer;
-        font-family: 'Syne', sans-serif;
-        display: inline-flex;
+    .cr-footer {
+        background: #fff;
+        border-top: 1px solid #e2e8f0;
+        padding: .6rem 1.25rem;
+        display: flex;
         align-items: center;
-        gap: .4rem;
-        transition: background var(--transit), transform var(--transit);
+        gap: .45rem;
+        flex-shrink: 0;
+        flex-wrap: wrap;
     }
 
-        .btn-save:hover {
-            background: #0d3580;
-            transform: translateY(-1px);
+    .cr-footer-back {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        color: #6b7280;
+        font-size: .78rem;
+        font-weight: 500;
+        text-decoration: none;
+        padding: .28rem .75rem;
+        border-radius: 5px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        transition: all .15s;
+        margin-left: auto;
+        height: 31px;
+    }
+
+        .cr-footer-back:hover {
+            background: #f9fafb;
+            color: #374151;
+            border-color: #9ca3af;
         }
 
-        .btn-save:disabled {
-            opacity: .6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-save.edit-mode {
-            background: var(--amber);
-        }
-
-            .btn-save.edit-mode:hover {
-                background: #b87a00;
-            }
-
-    .btn-cancel-drw {
-        background: none;
-        color: var(--ink-3);
-        border: 1px solid var(--line);
-        border-radius: var(--r);
-        padding: .5rem 1rem;
-        font-size: .875rem;
+    .btn-submit {
+        display: inline-flex;
+        align-items: center;
+        gap: .32rem;
+        border: none;
+        border-radius: 6px;
+        padding: .38rem 1.05rem;
+        font-size: .815rem;
         font-weight: 600;
         cursor: pointer;
-        font-family: 'Lato', sans-serif;
-        display: inline-flex;
-        align-items: center;
-        transition: background var(--transit);
-        text-decoration: none;
+        font-family: 'Inter', sans-serif;
+        transition: all .12s;
+        height: 31px;
     }
 
-        .btn-cancel-drw:hover {
-            background: var(--surface);
-            color: var(--ink);
-        }
-
-    .btn-delete {
-        background: var(--red-lt);
-        color: var(--red);
-        border: 1px solid var(--red);
-        border-radius: var(--r);
-        padding: .5rem 1rem;
-        font-size: .875rem;
-        font-weight: 700;
-        cursor: pointer;
-        font-family: 'Syne', sans-serif;
-        display: inline-flex;
-        align-items: center;
-        gap: .35rem;
-        transition: background var(--transit);
-        margin-left: auto;
-    }
-
-        .btn-delete:hover {
-            background: var(--red);
+        .btn-submit.mode-create {
+            background: #2563eb;
             color: #fff;
         }
 
-    /* ── IMPORT MODAL ── */
-    .modal-overlay {
+            .btn-submit.mode-create:hover {
+                background: #1d4ed8;
+            }
+
+        .btn-submit.mode-edit {
+            background: #d97706;
+            color: #fff;
+        }
+
+            .btn-submit.mode-edit:hover {
+                background: #b45309;
+            }
+
+        .btn-submit:disabled {
+            opacity: .5;
+            cursor: not-allowed;
+        }
+
+    .btn-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: .28rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: .36rem .85rem;
+        font-size: .79rem;
+        font-weight: 500;
+        cursor: pointer;
+        background: #fff;
+        color: #374151;
+        font-family: 'Inter', sans-serif;
+        text-decoration: none;
+        transition: all .12s;
+        height: 31px;
+    }
+
+        .btn-outline:hover {
+            border-color: #9ca3af;
+            background: #f9fafb;
+            color: #111827;
+        }
+
+    .btn-danger-outline {
+        display: inline-flex;
+        align-items: center;
+        gap: .28rem;
+        border: 1px solid #fca5a5;
+        border-radius: 6px;
+        padding: .36rem .85rem;
+        font-size: .79rem;
+        font-weight: 500;
+        cursor: pointer;
+        background: #fff;
+        color: #dc2626;
+        font-family: 'Inter', sans-serif;
+        transition: all .12s;
+        height: 31px;
+    }
+
+        .btn-danger-outline:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+    .del-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(11,22,36,.55);
-        z-index: 950;
+        background: rgba(0,0,0,.45);
+        z-index: 1050;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 1rem;
         opacity: 0;
         visibility: hidden;
-        transition: opacity .2s, visibility .2s;
+        transition: opacity .18s, visibility .18s;
     }
 
-        .modal-overlay.open {
+        .del-overlay.open {
             opacity: 1;
             visibility: visible;
         }
 
-    .modal {
-        background: var(--white);
-        border-radius: var(--r-lg);
-        box-shadow: var(--sh-lg);
-        width: min(520px, 100%);
+    .del-modal {
+        background: #fff;
+        border-radius: 10px;
+        width: min(430px, 100%);
         overflow: hidden;
-        transform: scale(.95) translateY(8px);
-        transition: transform .2s;
+        transform: scale(.96) translateY(6px);
+        transition: transform .18s;
+        box-shadow: 0 20px 50px rgba(0,0,0,.2);
     }
 
-    .modal-overlay.open .modal {
+    .del-overlay.open .del-modal {
         transform: scale(1) translateY(0);
     }
 
-    .modal-head {
-        background: var(--ink);
-        border-bottom: 3px solid var(--gold);
-        padding: 1rem 1.3rem;
+    .del-head {
+        background: #7f1d1d;
+        padding: .8rem 1.1rem;
         display: flex;
-        align-items: center;
-        justify-content: space-between;
+        align-items: flex-start;
+        gap: .65rem;
     }
 
-        .modal-head h3 {
-            font-family: 'Syne', sans-serif;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            margin: 0;
-        }
-
-    .modal-close {
-        background: rgba(255,255,255,.1);
-        border: 1px solid rgba(255,255,255,.2);
-        border-radius: var(--r);
+    .del-head-icon {
         width: 30px;
         height: 30px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        color: #fff;
-        transition: background var(--transit);
-    }
-
-        .modal-close:hover {
-            background: rgba(255,255,255,.25);
-        }
-
-    .modal-body {
-        padding: 1.3rem;
-    }
-
-    .modal-foot {
-        padding: .85rem 1.3rem;
-        border-top: 1px solid var(--line);
-        display: flex;
-        gap: .5rem;
-        justify-content: flex-end;
-        background: #f9fafc;
-    }
-
-    /* Drop zone */
-    .drop-zone {
-        border: 2px dashed var(--line);
-        border-radius: var(--r-lg);
-        padding: 2rem 1rem;
-        text-align: center;
-        cursor: pointer;
-        transition: border-color var(--transit), background var(--transit);
-        background: #f9fafc;
-        position: relative;
-    }
-
-        .drop-zone:hover, .drop-zone.drag-over {
-            border-color: var(--blue);
-            background: var(--blue-lt);
-        }
-
-        .drop-zone input[type=file] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        .drop-zone .dz-icon {
-            font-size: 2rem;
-            margin-bottom: .5rem;
-        }
-
-        .drop-zone .dz-text {
-            font-size: .88rem;
-            color: var(--muted);
-            font-weight: 600;
-        }
-
-        .drop-zone .dz-sub {
-            font-size: .75rem;
-            color: #aaa;
-            margin-top: .25rem;
-        }
-
-        .drop-zone .dz-file {
-            margin-top: .75rem;
-            background: var(--white);
-            border: 1px solid var(--line);
-            border-radius: var(--r);
-            padding: .5rem .8rem;
-            font-family: 'DM Mono', monospace;
-            font-size: .8rem;
-            color: var(--blue);
-            display: inline-flex;
-            align-items: center;
-            gap: .4rem;
-        }
-
-    .import-opts {
-        margin-top: 1rem;
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--r);
-        padding: .8rem 1rem;
-    }
-
-        .import-opts label {
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-            font-size: .84rem;
-            color: var(--ink);
-            cursor: pointer;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .import-opts .sub-opt {
-            font-size: .75rem;
-            color: var(--muted);
-            margin-top: .35rem;
-            padding-left: 1.6rem;
-        }
-
-    /* Progress */
-    .import-progress {
-        display: none;
-        margin-top: 1rem;
-    }
-
-        .import-progress.show {
-            display: block;
-        }
-
-    .prog-bar-wrap {
-        background: var(--line);
-        border-radius: 20px;
-        height: 8px;
-        overflow: hidden;
-        margin-bottom: .5rem;
-    }
-
-    .prog-bar {
-        height: 100%;
-        background: var(--blue);
-        border-radius: 20px;
-        transition: width .3s;
-        width: 0%;
-    }
-
-    .prog-text {
-        font-size: .78rem;
-        color: var(--muted);
-        font-weight: 600;
-    }
-
-    /* Import result */
-    .import-result {
-        margin-top: .75rem;
-        padding: .65rem .9rem;
-        border-radius: var(--r);
-        font-size: .83rem;
-        font-weight: 600;
-        display: none;
-    }
-
-        .import-result.show {
-            display: block;
-        }
-
-        .import-result.success {
-            background: var(--green-lt);
-            color: var(--green);
-            border-left: 4px solid var(--green);
-        }
-
-        .import-result.error {
-            background: var(--red-lt);
-            color: var(--red);
-            border-left: 4px solid var(--red);
-        }
-
-        .import-result.warn {
-            background: var(--amber-lt);
-            color: var(--amber);
-            border-left: 4px solid var(--amber);
-        }
-
-    /* ── DELETE CONFIRM MODAL ── */
-    .del-modal-head {
-        background: linear-gradient(135deg,#7b1e18,#a93226);
-        border-bottom: 3px solid var(--gold);
-        padding: 1rem 1.3rem;
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-    }
-
-        .del-modal-head h3 {
-            font-family: 'Syne',sans-serif;
-            font-size: 1rem;
-            font-weight: 800;
-            color: #fff;
-            margin-bottom: .1rem;
-        }
-
-        .del-modal-head p {
-            font-size: .75rem;
-            color: #f5b7b1;
-        }
-
-    .del-icon {
         background: rgba(255,255,255,.15);
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: #fff;
         flex-shrink: 0;
+        margin-top: 1px;
     }
 
-    .modal-warn {
-        background: var(--red-lt);
-        border-left: 4px solid var(--red);
-        border-radius: var(--r);
-        padding: .7rem .9rem;
-        font-size: .84rem;
-        color: #7b1e18;
-        margin-bottom: .9rem;
+    .del-head h3 {
+        color: #fff;
+        font-size: .86rem;
+        font-weight: 600;
+        margin: 0 0 2px;
     }
 
-    .modal-record {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: var(--r);
-        padding: .75rem .9rem;
-        font-size: .84rem;
+    .del-head p {
+        color: #fca5a5;
+        font-size: .71rem;
+        margin: 0;
     }
 
-        .modal-record .mr-row {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--line);
-            padding: .35rem 0;
+    .del-body {
+        padding: .9rem 1.1rem;
+    }
+
+    .del-warn {
+        background: #fef2f2;
+        border-left: 3px solid #dc2626;
+        border-radius: 0 5px 5px 0;
+        padding: .5rem .7rem;
+        font-size: .77rem;
+        color: #7f1d1d;
+        margin-bottom: .7rem;
+    }
+
+    .del-record {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 7px;
+        overflow: hidden;
+        font-size: .77rem;
+    }
+
+    .del-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: .36rem .75rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+        .del-row:last-child {
+            border-bottom: none;
         }
 
-            .modal-record .mr-row:last-child {
-                border-bottom: none;
-            }
+    .del-key {
+        color: #6b7280;
+        font-size: .65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
 
-        .modal-record .mr-key {
-            font-size: .7rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
+    .del-val {
+        font-weight: 500;
+        color: #111827;
+    }
+
+        .del-val.mono {
+            font-family: 'DM Mono', monospace;
+            color: #2563eb;
+            font-size: .73rem;
         }
 
-        .modal-record .mr-val {
-            font-size: .82rem;
-            font-weight: 600;
-            color: var(--ink);
-        }
-
-            .modal-record .mr-val.mono {
-                font-family: 'DM Mono', monospace;
-                color: var(--blue);
-            }
+    .del-foot {
+        padding: .7rem 1.1rem;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+        display: flex;
+        gap: .4rem;
+        justify-content: flex-end;
+    }
 
     .btn-confirm-del {
-        background: var(--red);
-        color: #fff;
-        border: none;
-        border-radius: var(--r);
-        padding: .5rem 1.1rem;
-        font-size: .86rem;
-        font-weight: 700;
-        cursor: pointer;
-        font-family: 'Syne', sans-serif;
         display: inline-flex;
         align-items: center;
-        gap: .35rem;
-        transition: background var(--transit);
+        gap: .3rem;
+        background: #dc2626;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: .36rem .85rem;
+        font-size: .79rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        transition: background .12s;
+        height: 30px;
     }
 
         .btn-confirm-del:hover {
-            background: #a93226;
+            background: #b91c1c;
         }
 
         .btn-confirm-del:disabled {
-            opacity: .6;
+            opacity: .5;
             cursor: not-allowed;
         }
 
-    /* ── TOAST ── */
+    .btn-cancel-del {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: .36rem .85rem;
+        font-size: .79rem;
+        font-weight: 500;
+        cursor: pointer;
+        background: #fff;
+        color: #374151;
+        font-family: 'Inter', sans-serif;
+        transition: background .12s;
+        height: 30px;
+    }
+
+        .btn-cancel-del:hover {
+            background: #f3f4f6;
+        }
+
     .toast-wrap {
         position: fixed;
-        bottom: 1.5rem;
-        right: 1.5rem;
+        bottom: 1rem;
+        right: 1rem;
         z-index: 9999;
         display: flex;
         flex-direction: column;
-        gap: .5rem;
+        gap: .3rem;
         pointer-events: none;
     }
 
     .toast {
-        background: var(--ink);
-        color: #fff;
-        border-radius: var(--r);
-        padding: .7rem 1rem;
-        font-size: .84rem;
-        font-weight: 600;
+        background: #0f172a;
+        color: #f1f5f9;
+        border-radius: 7px;
+        padding: .52rem .82rem;
+        font-size: .77rem;
+        font-weight: 500;
         display: flex;
         align-items: center;
-        gap: .5rem;
-        box-shadow: var(--sh-lg);
-        min-width: 240px;
-        animation: crToastIn .25s ease, crToastOut .3s ease 2.7s forwards;
+        gap: .4rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,.25);
+        min-width: 200px;
+        animation: tIn .2s ease, tOut .25s ease 2.75s forwards;
         pointer-events: auto;
+        font-family: 'Inter', sans-serif;
     }
 
         .toast.success {
-            border-left: 4px solid var(--green);
+            border-left: 3px solid #16a34a;
         }
 
         .toast.error {
-            border-left: 4px solid var(--red);
+            border-left: 3px solid #dc2626;
         }
 
         .toast.warn {
-            border-left: 4px solid var(--amber);
+            border-left: 3px solid #d97706;
         }
 
-    /* ── SPINNER ── */
     .spinner {
         display: inline-block;
-        width: 14px;
-        height: 14px;
-        border: 2px solid rgba(255,255,255,.35);
+        width: 12px;
+        height: 12px;
+        border: 2px solid rgba(255,255,255,.25);
         border-top-color: #fff;
         border-radius: 50%;
-        animation: crSpin .6s linear infinite;
+        animation: spin .5s linear infinite;
         flex-shrink: 0;
     }
 
         .spinner.dark {
-            border-color: rgba(0,0,0,.15);
-            border-top-color: var(--blue);
+            border-color: rgba(0,0,0,.12);
+            border-top-color: #2563eb;
         }
 
-    @@keyframes crSpin {
+    @@keyframes spin {
         to {
             transform: rotate(360deg);
         }
     }
 
-    @@keyframes crToastIn {
+    @@keyframes tIn {
         from {
             opacity: 0;
-            transform: translateY(12px);
+            transform: translateX(8px);
         }
 
         to {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
         }
     }
 
-    @@keyframes crToastOut {
-        from {
-            opacity: 1;
-        }
-
+    @@keyframes tOut {
         to {
             opacity: 0;
-            transform: translateY(-8px);
+            transform: translateX(6px);
         }
     }
 
-    @@media(max-width:640px) {
-        .drw-grid {
+    @@media (max-width:640px) {
+        .cr-sidebar {
+            display: none;
+        }
+
+        .cr-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+
+            .cr-grid .g-full {
+                grid-column: 1 / -1;
+            }
+
+            .cr-grid .g-two {
+                grid-column: 1 / -1;
+            }
+    }
+
+    @@media (max-width:480px) {
+        .cr-grid {
             grid-template-columns: 1fr;
-        }
-
-        .pg-head {
-            padding: 1rem 1.1rem;
         }
     }
 </style>
 
-<!-- ══════════════════════════════════════════════════════════ PAGE HEADER -->
-<div class="pg-head">
-    <div class="pg-head-left">
-        <!--
-            Crime REPORT icon: clipboard with pencil — clearly different from
-            CrimeData's database/table icon
-        -->
-        <div class="pg-icon-badge">
-            <svg width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
-                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5H3.5A1.5 1.5 0 0 0 2 3h12a1.5 1.5 0 0 0-1.5-1.5H11A1.5 1.5 0 0 0 9.5 0z" />
-                <path d="M9.854 7.146a.5.5 0 0 0-.707 0l-3 3a.5.5 0 0 0-.128.21l-.5 1.75a.5.5 0 0 0 .612.612l1.75-.5a.5.5 0 0 0 .21-.128l3-3a.5.5 0 0 0 0-.707l-1.237-1.237zM11 6.586l.707.707-2.854 2.853-1.086.31.31-1.086z" />
-            </svg>
+<div class="cr-page">
+
+    <!-- TOP BAR -->
+    <div class="cr-topbar">
+        <div class="cr-topbar-left">
+            <div class="cr-topbar-icon">
+                <svg width="15" height="15" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
+                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5H3.5A1.5 1.5 0 0 0 2 3h12a1.5 1.5 0 0 0-1.5-1.5H11A1.5 1.5 0 0 0 9.5 0z" />
+                    <path d="M9.854 7.146a.5.5 0 0 0-.707 0l-3 3a.5.5 0 0 0-.128.21l-.5 1.75a.5.5 0 0 0 .612.612l1.75-.5a.5.5 0 0 0 .21-.128l3-3a.5.5 0 0 0 0-.707L9.854 7.146z" />
+                </svg>
+            </div>
+            <div>
+                <div class="cr-topbar-title" id="pageTitle">New Crime Report</div>
+                <div class="cr-topbar-sub">Australian Crime Analysis System</div>
+            </div>
         </div>
-        <div>
-            <h1 id="pageTitle">New Crime Report</h1>
-            <div class="sub">Australian Crime Analysis System · <span id="modeLabel">Create Mode</span></div>
+        <div class="cr-topbar-right">
+            <div class="cr-pill create" id="modePill">
+                <div class="cr-pill-dot"></div>
+                <span id="modePillText">Create Mode</span>
+            </div>
         </div>
     </div>
-    <div class="head-actions">
-        <a href="@Url.Action("Index", "CrimeData")" class="btn-back">
-            <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" /></svg>
-            Crime Data
-        </a>
-       @*  <button class="btn-import" onclick="openImport()">
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" /><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" /></svg>
-            Import CSV
-        </button> *@
-        <button class="btn-primary" onclick="resetToCreate()">
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
-            New Report
-        </button>
+
+    <!-- EDIT STRIP -->
+    <div class="cr-edit-strip" id="editStrip">
+        <span class="es-label">ID:</span><span class="es-val es-id" id="stripId">—</span>
+        <span class="es-label">File #:</span><span class="es-val" id="stripFile">—</span>
+        <span class="es-label" style="margin-left:auto; font-family:'Inter',sans-serif; font-size:.69rem;">
+            Editing existing record — changes are saved on Update
+        </span>
     </div>
+
+    <div class="cr-body">
+
+        <!-- SIDEBAR -->
+        <nav class="cr-sidebar">
+            <div class="cr-sidebar-head">Navigation</div>
+            <button class="cr-sidebar-item active" id="navCase" onclick="scrollSec('secCase')">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5z" /></svg>
+                Case ID
+            </button>
+            <button class="cr-sidebar-item" id="navLoc" onclick="scrollSec('secLocation')">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg>
+                Location
+            </button>
+            <div class="cr-sidebar-divider"></div>
+            <a class="cr-sidebar-item" href="@Url.Action("Index", "CrimeData")">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v2A1.5 1.5 0 0 1 14.5 5h-13A1.5 1.5 0 0 1 0 3.5v-2zM2 2.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1-.5-.5zM0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8z" /></svg>
+                All Records
+            </a>
+            <button class="cr-sidebar-item" id="sideNewBtn" onclick="resetToCreate()" style="display:none;">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
+                New Report
+            </button>
+            <div class="cr-sidebar-id" id="sidebarId">
+                <div style="font-size:.61rem; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px;">Record ID</div>
+                <strong id="sidebarIdVal">—</strong>
+            </div>
+        </nav>
+
+        <!-- MAIN -->
+        <div class="cr-main">
+
+            <!-- Loading state -->
+            <div class="cr-loading-state" id="loadingState">
+                <div class="cr-load-spin"></div>
+                <span>Loading record…</span>
+            </div>
+
+            <input type="hidden" id="frmId" value="0" />
+
+            <div class="cr-form-body" id="formBody">
+
+                <!-- SECTION: Case Identification -->
+                <div class="cr-section" id="secCase">
+                    <div class="cr-section-title">
+                        <svg width="9" height="9" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5z" /></svg>
+                        Case Identification
+                    </div>
+                    <div class="cr-grid">
+                        <div class="cr-field g-half">
+                            <label>File Number <span class="req">*</span></label>
+                            <input type="text" id="frmFileNumber" placeholder="e.g. CR-2024-00001" maxlength="50" />
+                            <span class="field-err" id="errFileNumber">Required</span>
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Crime Type <span class="req">*</span></label>
+                            <select id="frmCrimeType">
+                                <option value="">— Select —</option>
+                                @foreach (var ct in Enum.GetValues<CrimeType>())
+                                {
+                                    <option value="@ct">@ct</option>
+                                }
+                            </select>
+                            <span class="field-err" id="errCrimeType">Required</span>
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Date of Report</label>
+                            <input type="date" id="frmDateOfReport" />
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Crime Date &amp; Time</label>
+                            <input type="datetime-local" id="frmCrimeDateTime" />
+                        </div>
+                        <div class="cr-field g-full">
+                            <label>Raw Date/Time String</label>
+                            <input type="text" id="frmCrimeDateTimeRaw" placeholder="Original unparsed value (optional)" maxlength="100" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION: Location -->
+                <div class="cr-section" id="secLocation">
+                    <div class="cr-section-title">
+                        <svg width="9" height="9" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg>
+                        Location Details
+                    </div>
+                    <div class="cr-grid">
+                        <div class="cr-field g-full">
+                            <label>Street Address / Location</label>
+                            <input type="text" id="frmLocation" placeholder="e.g. 42 King Street, Melbourne VIC 3000" maxlength="255" />
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Neighbourhood / Suburb</label>
+                            <input type="text" id="frmNeighborhood" placeholder="e.g. Fitzroy" maxlength="100" />
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Reporting Area / Beat</label>
+                            <input type="text" id="frmReportingArea" placeholder="e.g. AREA-07" maxlength="20" />
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Latitude</label>
+                            <input type="number" id="frmLatitude" step="0.0000001" placeholder="-33.8688197" min="-90" max="90" />
+                            <span class="hint">Decimal degrees (−90 to 90)</span>
+                        </div>
+                        <div class="cr-field g-half">
+                            <label>Longitude</label>
+                            <input type="number" id="frmLongitude" step="0.0000001" placeholder="151.2092955" min="-180" max="180" />
+                            <span class="hint">Decimal degrees (−180 to 180)</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /cr-form-body -->
+            <!-- FOOTER -->
+            <div class="cr-footer">
+                <button class="btn-submit mode-create" id="btnSubmit" onclick="saveReport()">
+                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 1 0 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z" /></svg>
+                    <span id="btnSubmitText">Create Report</span>
+                </button>
+
+                <button class="btn-outline" id="btnReset" onclick="resetToCreate()" style="display:none;">
+                    <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" /><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" /></svg>
+                    New Report
+                </button>
+
+                <button class="btn-danger-outline" id="btnDelete" onclick="openDeleteModal()" style="display:none;">
+                    <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
+                    Delete
+                </button>
+
+                <a href="@Url.Action("Index", "CrimeData")" class="cr-footer-back">
+                    <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z" /></svg>
+                    Back to Crime Data
+                </a>
+            </div>
+
+        </div><!-- /cr-main -->
+    </div><!-- /cr-body -->
 </div>
 
-<!-- ══════════════════════════════════════════════════════════ FORM CARD -->
-<div class="form-card">
-    <div class="form-card-head">
-        <div class="form-card-head-title">
-            <!-- Small clipboard icon matching the header -->
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z" />
-                <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5H3.5A1.5 1.5 0 0 0 2 3h12a1.5 1.5 0 0 0-1.5-1.5H11A1.5 1.5 0 0 0 9.5 0z" />
-            </svg>
-            <span id="formCardTitle">Create Crime Report</span>
-            <span class="mode-badge create" id="modeBadge">New</span>
-        </div>
-        <div id="editInfo" style="font-size:.76rem; color:var(--muted); font-family:'DM Mono',monospace; display:none;">
-            ID: <strong id="editIdDisplay" style="color:var(--blue);">—</strong>
-        </div>
-    </div>
-
-    <div class="form-card-body">
-        <input type="hidden" id="frmId" value="0" />
-
-        <!-- CASE IDENTIFICATION -->
-        <div class="drw-section">
-            <div class="drw-section-title">
-                <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M0 1.5A1.5 1.5 0 0 1 1.5 0h13A1.5 1.5 0 0 1 16 1.5v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 0 14.5z" /></svg>
-                Case Identification
-            </div>
-            <div class="drw-grid">
-                <div class="fg-drw">
-                    <label>File Number <span class="req">*</span></label>
-                    <input type="text" id="frmFileNumber" placeholder="e.g. CR-2024-00001" maxlength="50" />
-                    <span class="field-err" id="errFileNumber">Required</span>
-                </div>
-                <div class="fg-drw">
-                    <label>Crime Type <span class="req">*</span></label>
-                    <select id="frmCrimeType">
-                        <option value="">— Select —</option>
-                        @foreach (var ct in Enum.GetValues<CrimeType>())
-                        {
-                            <option value="@ct">@ct</option>
-                        }
-                    </select>
-                    <span class="field-err" id="errCrimeType">Required</span>
-                </div>
-                <div class="fg-drw">
-                    <label>Date of Report</label>
-                    <input type="date" id="frmDateOfReport" />
-                </div>
-                <div class="fg-drw">
-                    <label>Crime Date &amp; Time</label>
-                    <input type="datetime-local" id="frmCrimeDateTime" />
-                </div>
-                <div class="fg-drw full">
-                    <label>Raw Date/Time String</label>
-                    <input type="text" id="frmCrimeDateTimeRaw" placeholder="Original unparsed value (optional)" maxlength="100" />
-                </div>
-            </div>
-        </div>
-
-        <!-- LOCATION DETAILS -->
-        <div class="drw-section">
-            <div class="drw-section-title">
-                <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z" /></svg>
-                Location Details
-            </div>
-            <div class="drw-grid">
-                <div class="fg-drw full">
-                    <label>Street Address / Location</label>
-                    <input type="text" id="frmLocation" placeholder="e.g. 42 King Street, Melbourne VIC 3000" maxlength="255" />
-                </div>
-                <div class="fg-drw">
-                    <label>Neighbourhood / Suburb</label>
-                    <input type="text" id="frmNeighborhood" placeholder="e.g. Fitzroy" maxlength="100" />
-                </div>
-                <div class="fg-drw">
-                    <label>Reporting Area / Beat</label>
-                    <input type="text" id="frmReportingArea" placeholder="e.g. AREA-07" maxlength="20" />
-                </div>
-                <div class="fg-drw">
-                    <label>Latitude</label>
-                    <input type="number" id="frmLatitude" step="0.0000001" placeholder="-33.8688197" min="-90" max="90" />
-                    <span class="hint">Decimal degrees (−90 to 90)</span>
-                </div>
-                <div class="fg-drw">
-                    <label>Longitude</label>
-                    <input type="number" id="frmLongitude" step="0.0000001" placeholder="151.2092955" min="-180" max="180" />
-                    <span class="hint">Decimal degrees (−180 to 180)</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="form-card-foot">
-        <button class="btn-save" id="btnSave" onclick="saveReport()">
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z" /></svg>
-            <span id="btnSaveText">Create Report</span>
-        </button>
-        <button class="btn-cancel-drw" onclick="resetToCreate()" id="btnReset" style="display:none;">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" /><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" /></svg>
-            New Report
-        </button>
-        <button class="btn-delete" id="btnDelete" onclick="openDeleteModal()" style="display:none;">
-            <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
-            Delete Report
-        </button>
-    </div>
-</div>
-
-@* <!-- ══════════════════════════════════════════════════════════ IMPORT MODAL -->
-<div class="modal-overlay" id="importModal">
-    <div class="modal">
-        <div class="modal-head">
-            <h3>
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" /><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" /></svg>
-                Import CSV to Database
-            </h3>
-            <button class="modal-close" onclick="closeImport()">
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" /></svg>
-            </button>
-        </div>
-        <div class="modal-body">
-            <div class="drop-zone" id="dropZone">
-                <input type="file" id="csvFile" accept=".csv" onchange="onFileSelected(this)" />
-                <div class="dz-icon">📂</div>
-                <div class="dz-text">Drop your CSV file here or click to browse</div>
-                <div class="dz-sub">Supports Crime_Reports format &middot; Max 50 MB</div>
-                <div class="dz-file" id="dzFileName" style="display:none;">
-                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16"><path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3z" /></svg>
-                    <span id="dzFileNameText"></span>
-                </div>
-            </div>
-
-            <div class="import-opts">
-                <label>
-                    <input type="checkbox" id="optSkipDuplicates" checked />
-                    Skip duplicate file numbers (recommended)
-                </label>
-                <div class="sub-opt">Existing records with the same File Number will not be overwritten.</div>
-            </div>
-
-            <div class="import-progress" id="importProgress">
-                <div class="prog-bar-wrap"><div class="prog-bar" id="progBar"></div></div>
-                <div class="prog-text" id="progText">Uploading…</div>
-            </div>
-
-            <div class="import-result" id="importResult"></div>
-        </div>
-        <div class="modal-foot">
-            <button class="btn-cancel-drw" onclick="closeImport()">Cancel</button>
-            <button class="btn-save" id="btnImport" onclick="doImport()" disabled>
-                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" /><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" /></svg>
-                Import Records
-            </button>
-        </div>
-    </div>
-</div> *@
-
-<!-- ══════════════════════════════════════════════════════════ DELETE MODAL -->
-<div class="modal-overlay" id="delModal" role="dialog" aria-modal="true">
-    <div class="modal">
-        <div class="del-modal-head">
-            <div class="del-icon">
-                <svg width="20" height="20" fill="white" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
+<!-- DELETE MODAL -->
+<div class="del-overlay" id="delModal">
+    <div class="del-modal">
+        <div class="del-head">
+            <div class="del-head-icon">
+                <svg width="15" height="15" fill="white" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z" /><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1z" /></svg>
             </div>
             <div>
                 <h3>Confirm Deletion</h3>
                 <p id="delSubtitle">This action cannot be undone.</p>
             </div>
         </div>
-        <div class="modal-body">
-            <div class="modal-warn">⚠ This record will be permanently removed from the database.</div>
-            <div class="modal-record" id="delRecord"></div>
+        <div class="del-body">
+            <div class="del-warn">⚠ This record will be permanently removed from the database.</div>
+            <div class="del-record" id="delRecord"></div>
         </div>
-        <div class="modal-foot">
-            <button class="btn-cancel-drw" onclick="closeDeleteModal()">Cancel</button>
+        <div class="del-foot">
+            <button class="btn-cancel-del" onclick="closeDeleteModal()">Cancel</button>
             <button class="btn-confirm-del" id="btnConfirmDel" onclick="confirmDelete()">
-                <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z" /></svg>
+                <svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z" /></svg>
                 Delete Report
             </button>
         </div>
@@ -1017,89 +968,87 @@
 
 @section Scripts {
     <script>
-        const BASE = '@Url.Action("CrimeReport", "CrimeReport")'.replace('/CrimeReport','');
-        const URLS = {
-            get:    (id) => `${BASE}/CrimeReport/Details/${id}`,
-            create: '@Url.Action("Create", "CrimeReport")',
-            edit:   (id) => `${BASE}/CrimeReport/Edit/${id}`,
-            del:    (id) => `${BASE}/CrimeReport/Delete/${id}`,
-            import: '@Url.Action("ImportCsv", "CrimeReport")',
+        // ======================== FIXED & OPTIMIZED JAVASCRIPT ========================
+        // Base URL for API calls – uses built-in Url.Action properly
+        const API_BASE = {
+            details: (id) => '@Url.Action("Details", "CrimeReport")' + '/' + id,
+            create:  '@Url.Action("Create", "CrimeReport")',
+            edit:    (id) => '@Url.Action("Edit", "CrimeReport")' + '/' + id,
+            delete:  (id) => '@Url.Action("Delete", "CrimeReport")' + '/' + id,
         };
 
         let isEditMode = false;
         let currentId  = 0;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(location.search);
-            const id     = parseInt(params.get('id')) || 0;
-            const mode   = params.get('mode');
-            if (id > 0 && mode === 'edit') loadForEdit(id);
+        // ─── DOM elements ─────────────────────────────────────────────────
+        function getEl(id) { return document.getElementById(id); }
 
-            // Drag & drop
-            const dz = document.getElementById('dropZone');
-            dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('drag-over'); });
-            dz.addEventListener('dragleave', ()  => dz.classList.remove('drag-over'));
-            dz.addEventListener('drop', e => {
-                e.preventDefault();
-                dz.classList.remove('drag-over');
-                const file = e.dataTransfer.files[0];
-                if (file) {
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById('csvFile').files = dt.files;
-                    setFile(file);
-                }
-            });
+        // ─── Loading state ──────────────────────────────────────────────
+        function showLoadingState(on) {
+            const loading = getEl('loadingState');
+            const formBody = getEl('formBody');
+            if (loading) loading.classList.toggle('show', on);
+            if (formBody) formBody.style.visibility = on ? 'hidden' : '';
+        }
 
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') { closeImport(); closeDeleteModal(); }
-            });
-        });
-
-        // ── Mode switching ────────────────────────────────────────────────────
+        // ─── Mode switching (create/edit) ────────────────────────────────
         function setMode(mode, id = 0, fileNumber = '') {
             isEditMode = mode === 'edit';
             currentId  = id;
 
-            const badge     = document.getElementById('modeBadge');
-            const btnSave   = document.getElementById('btnSave');
-            const btnText   = document.getElementById('btnSaveText');
-            const btnReset  = document.getElementById('btnReset');
-            const btnDel    = document.getElementById('btnDelete');
-            const editInfo  = document.getElementById('editInfo');
-            const cardTitle = document.getElementById('formCardTitle');
-            const pageTitle = document.getElementById('pageTitle');
-            const modeLabel = document.getElementById('modeLabel');
-            const editIdDsp = document.getElementById('editIdDisplay');
+            const btn        = getEl('btnSubmit');
+            const btnTxt     = getEl('btnSubmitText');
+            const btnReset   = getEl('btnReset');
+            const btnDel     = getEl('btnDelete');
+            const editStrip  = getEl('editStrip');
+            const pill       = getEl('modePill');
+            const pillTxt    = getEl('modePillText');
+            const pageTitle  = getEl('pageTitle');
+            const sideId     = getEl('sidebarId');
+            const sideIdVal  = getEl('sidebarIdVal');
+            const sideNew    = getEl('sideNewBtn');
+            const navCase    = getEl('navCase');
+            const navLoc     = getEl('navLoc');
+
+            if (!btn || !btnTxt) return;
 
             if (isEditMode) {
-                badge.className     = 'mode-badge edit';
-                badge.textContent   = 'Editing';
-                btnSave.className   = 'btn-save edit-mode';
-                btnText.textContent = 'Update Report';
-                cardTitle.textContent = 'Edit Crime Report';
-                pageTitle.textContent = fileNumber ? `Editing: ${fileNumber}` : 'Edit Crime Report';
-                modeLabel.textContent = 'Edit Mode';
-                btnReset.style.display = '';
-                btnDel.style.display   = '';
-                editInfo.style.display = '';
-                editIdDsp.textContent  = `#${id}`;
-                document.getElementById('frmId').value = id;
+                btn.className            = 'btn-submit mode-edit';
+                btnTxt.textContent       = 'Update Report';
+                if (btnReset) btnReset.style.display   = '';
+                if (btnDel)   btnDel.style.display     = '';
+                if (editStrip) editStrip.classList.add('show');
+                const stripId = getEl('stripId');
+                const stripFile = getEl('stripFile');
+                if (stripId) stripId.textContent   = `#${id}`;
+                if (stripFile) stripFile.textContent = fileNumber || '—';
+                if (pageTitle) pageTitle.textContent = fileNumber ? `Editing: ${fileNumber}` : 'Edit Crime Report';
+                if (pill) { pill.className = 'cr-pill edit'; pillTxt.textContent = 'Edit Mode'; }
+                if (sideId) sideId.classList.add('show');
+                if (sideIdVal) sideIdVal.textContent = `#${id}`;
+                if (sideNew) sideNew.style.display = '';
+                if (navCase) navCase.className = 'cr-sidebar-item active-edit';
+                if (navLoc)  navLoc.className = 'cr-sidebar-item active-edit';
+                const frmId = getEl('frmId');
+                if (frmId) frmId.value = id;
             } else {
-                badge.className     = 'mode-badge create';
-                badge.textContent   = 'New';
-                btnSave.className   = 'btn-save';
-                btnText.textContent = 'Create Report';
-                cardTitle.textContent = 'Create Crime Report';
-                pageTitle.textContent = 'New Crime Report';
-                modeLabel.textContent = 'Create Mode';
-                btnReset.style.display = 'none';
-                btnDel.style.display   = 'none';
-                editInfo.style.display = 'none';
-                document.getElementById('frmId').value = 0;
+                btn.className            = 'btn-submit mode-create';
+                btnTxt.textContent       = 'Create Report';
+                if (btnReset) btnReset.style.display   = 'none';
+                if (btnDel)   btnDel.style.display     = 'none';
+                if (editStrip) editStrip.classList.remove('show');
+                if (pageTitle) pageTitle.textContent = 'New Crime Report';
+                if (pill) { pill.className = 'cr-pill create'; pillTxt.textContent = 'Create Mode'; }
+                if (sideId) sideId.classList.remove('show');
+                if (sideNew) sideNew.style.display = 'none';
+                if (navCase) navCase.className = 'cr-sidebar-item active';
+                if (navLoc)  navLoc.className = 'cr-sidebar-item';
+                const frmId = getEl('frmId');
+                if (frmId) frmId.value = 0;
             }
         }
 
+        // Reset to create mode (clear form)
         function resetToCreate() {
             setMode('create');
             clearForm();
@@ -1107,77 +1056,88 @@
             history.replaceState({}, '', location.pathname);
         }
 
-        // ── Load for edit ─────────────────────────────────────────────────────
+        // Clear all input fields
+        function clearForm() {
+            const ids = ['frmFileNumber','frmCrimeType','frmDateOfReport','frmCrimeDateTime',
+                         'frmCrimeDateTimeRaw','frmLocation','frmNeighborhood','frmReportingArea',
+                         'frmLatitude','frmLongitude'];
+            ids.forEach(id => { const el = getEl(id); if (el) el.value = ''; });
+        }
+
+        // Populate form with loaded data
+        function populateForm(r) {
+            setVal('frmFileNumber',       r.fileNumber       ?? '');
+            setVal('frmCrimeType',        r.crimeType        ?? '');
+            setVal('frmDateOfReport',     r.dateOfReport     ? r.dateOfReport.substring(0, 10)  : '');
+            setVal('frmCrimeDateTime',    r.crimeDateTime    ? r.crimeDateTime.substring(0, 16) : '');
+            setVal('frmCrimeDateTimeRaw', r.crimeDateTimeRaw ?? '');
+            setVal('frmLocation',         r.location         ?? '');
+            setVal('frmNeighborhood',     r.neighborhood     ?? '');
+            setVal('frmReportingArea',    r.reportingArea    ?? '');
+            setVal('frmLatitude',         r.latitude  != null ? r.latitude  : '');
+            setVal('frmLongitude',        r.longitude != null ? r.longitude : '');
+        }
+
+        function setVal(id, val) { const el = getEl(id); if (el) el.value = val; }
+        function getVal(id) { const el = getEl(id); return el ? el.value : ''; }
+
+        // Load existing record for editing
         async function loadForEdit(id) {
+            showLoadingState(true);
             try {
-                const res = await fetch(URLS.get(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                if (!res.ok) throw new Error();
+                const res = await fetch(API_BASE.details(id), {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const r = await res.json();
                 setMode('edit', r.crimeReportId, r.fileNumber);
                 populateForm(r);
-            } catch {
-                showToast('Failed to load record for editing.', 'error');
+            } catch (err) {
+                console.error(err);
+                showToast('Could not load record — it may not exist in the database.', 'error');
+                resetToCreate();
+            } finally {
+                showLoadingState(false);
             }
         }
 
-        function populateForm(r) {
-            document.getElementById('frmFileNumber').value       = r.fileNumber       || '';
-            document.getElementById('frmCrimeType').value        = r.crimeType        || '';
-            document.getElementById('frmDateOfReport').value     = r.dateOfReport     ? r.dateOfReport.substring(0,10)  : '';
-            document.getElementById('frmCrimeDateTime').value    = r.crimeDateTime    ? r.crimeDateTime.substring(0,16) : '';
-            document.getElementById('frmCrimeDateTimeRaw').value = r.crimeDateTimeRaw || '';
-            document.getElementById('frmLocation').value         = r.location         || '';
-            document.getElementById('frmNeighborhood').value     = r.neighborhood     || '';
-            document.getElementById('frmReportingArea').value    = r.reportingArea    || '';
-            document.getElementById('frmLatitude').value         = r.latitude  != null ? r.latitude  : '';
-            document.getElementById('frmLongitude').value        = r.longitude != null ? r.longitude : '';
-        }
-
-        function clearForm() {
-            ['frmFileNumber','frmCrimeType','frmDateOfReport','frmCrimeDateTime',
-             'frmCrimeDateTimeRaw','frmLocation','frmNeighborhood','frmReportingArea',
-             'frmLatitude','frmLongitude'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = '';
-            });
-        }
-
-        // ── Save (create / update) ────────────────────────────────────────────
+        // ─── Save (Create / Update) ─────────────────────────────────────
         async function saveReport() {
             clearErrors();
-            const id = parseInt(document.getElementById('frmId').value) || 0;
+            const id = parseInt(getVal('frmId')) || 0;
 
             const payload = {
                 crimeReportId:    id,
-                fileNumber:       document.getElementById('frmFileNumber').value.trim(),
-                crimeType:        document.getElementById('frmCrimeType').value,
-                dateOfReport:     document.getElementById('frmDateOfReport').value     || null,
-                crimeDateTime:    document.getElementById('frmCrimeDateTime').value    || null,
-                crimeDateTimeRaw: document.getElementById('frmCrimeDateTimeRaw').value.trim() || null,
-                location:         document.getElementById('frmLocation').value.trim()         || null,
-                neighborhood:     document.getElementById('frmNeighborhood').value.trim()     || null,
-                reportingArea:    document.getElementById('frmReportingArea').value.trim()    || null,
-                latitude:  document.getElementById('frmLatitude').value  !== '' ? parseFloat(document.getElementById('frmLatitude').value)  : null,
-                longitude: document.getElementById('frmLongitude').value !== '' ? parseFloat(document.getElementById('frmLongitude').value) : null,
+                fileNumber:       getVal('frmFileNumber').trim(),
+                crimeType:        getVal('frmCrimeType'),
+                dateOfReport:     getVal('frmDateOfReport')     || null,
+                crimeDateTime:    getVal('frmCrimeDateTime')    || null,
+                crimeDateTimeRaw: getVal('frmCrimeDateTimeRaw').trim() || null,
+                location:         getVal('frmLocation').trim()         || null,
+                neighborhood:     getVal('frmNeighborhood').trim()     || null,
+                reportingArea:    getVal('frmReportingArea').trim()    || null,
+                latitude:  getVal('frmLatitude')  !== '' ? parseFloat(getVal('frmLatitude'))  : null,
+                longitude: getVal('frmLongitude') !== '' ? parseFloat(getVal('frmLongitude')) : null,
             };
 
+            // Validation
             let valid = true;
-            if (!payload.fileNumber) { showErr('errFileNumber','File number is required.'); valid = false; }
-            if (!payload.crimeType)  { showErr('errCrimeType', 'Crime type is required.');  valid = false; }
+            if (!payload.fileNumber) { showErr('errFileNumber', 'File number is required.'); valid = false; }
+            if (!payload.crimeType)  { showErr('errCrimeType',  'Crime type is required.');  valid = false; }
             if (payload.latitude  != null && (payload.latitude  < -90  || payload.latitude  > 90))  { showToast('Latitude must be −90 to 90.',   'error'); valid = false; }
             if (payload.longitude != null && (payload.longitude < -180 || payload.longitude > 180)) { showToast('Longitude must be −180 to 180.', 'error'); valid = false; }
             if (!valid) return;
 
-            const btn = document.getElementById('btnSave');
+            const btn  = getEl('btnSubmit');
             btn.disabled = true;
-            const origHTML = btn.innerHTML;
+            const orig = btn.innerHTML;
             btn.innerHTML = `<span class="spinner"></span> ${isEditMode ? 'Updating…' : 'Creating…'}`;
 
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-            const url   = isEditMode ? URLS.edit(id) : URLS.create;
+            const url   = isEditMode ? API_BASE.edit(id) : API_BASE.create;
 
             try {
-                const res = await fetch(url, {
+                const res  = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1190,8 +1150,9 @@
 
                 if (!res.ok) {
                     if (data.errors) {
-                        Object.entries(data.errors).forEach(([k,v]) => {
-                            showErr('err' + k.charAt(0).toUpperCase() + k.slice(1), Array.isArray(v) ? v[0] : v);
+                        Object.entries(data.errors).forEach(([k, msgs]) => {
+                            const errId = 'err' + (k.charAt(0).toUpperCase() + k.slice(1));
+                            showErr(errId, Array.isArray(msgs) ? msgs[0] : msgs);
                         });
                     } else {
                         showToast(data.message || 'Save failed.', 'error');
@@ -1200,183 +1161,141 @@
                     showToast(
                         isEditMode
                             ? `Report ${data.fileNumber} updated successfully.`
-                            : `Report ${data.fileNumber} created. You can now edit or create another.`,
+                            : `Report ${data.fileNumber} created successfully.`,
                         'success'
                     );
                     setMode('edit', data.crimeReportId, data.fileNumber);
                     populateForm(data);
+                    // Update URL without full reload
+                    const newUrl = `${location.pathname}?id=${data.crimeReportId}&mode=edit`;
+                    history.replaceState({}, '', newUrl);
                 }
-            } catch {
-                showToast('Network error. Please try again.', 'error');
+            } catch (err) {
+                console.error(err);
+                showToast('Network error — please try again.', 'error');
             } finally {
                 btn.disabled  = false;
-                btn.innerHTML = origHTML;
+                btn.innerHTML = orig;
             }
         }
 
-        // ── Delete ────────────────────────────────────────────────────────────
+        // ─── Delete functionality ───────────────────────────────────────
         function openDeleteModal() {
-            const id      = parseInt(document.getElementById('frmId').value) || 0;
-            const fileNum = document.getElementById('frmFileNumber').value || '—';
-            const crime   = document.getElementById('frmCrimeType').value  || '—';
-            const nbr     = document.getElementById('frmNeighborhood').value || '—';
+            const id      = parseInt(getVal('frmId')) || 0;
+            const fileNum = getVal('frmFileNumber') || '—';
+            const crime   = getVal('frmCrimeType')  || '—';
+            const nbr     = getVal('frmNeighborhood') || '—';
             if (!id) return;
-
-            document.getElementById('delSubtitle').textContent = `File No. ${fileNum} · Record #${id}`;
-            document.getElementById('delRecord').innerHTML = `
-                <div class="mr-row"><span class="mr-key">File Number</span><span class="mr-val mono">${esc(fileNum)}</span></div>
-                <div class="mr-row"><span class="mr-key">Crime Type</span><span class="mr-val">${esc(crime)}</span></div>
-                <div class="mr-row"><span class="mr-key">Neighbourhood</span><span class="mr-val">${esc(nbr)}</span></div>`;
-            document.getElementById('delModal').classList.add('open');
+            const delSubtitle = getEl('delSubtitle');
+            if (delSubtitle) delSubtitle.textContent = `File No. ${fileNum} · Record #${id}`;
+            const delRecord = getEl('delRecord');
+            if (delRecord) {
+                delRecord.innerHTML = `
+                    <div class="del-row"><span class="del-key">File Number</span><span class="del-val mono">${escapeHtml(fileNum)}</span></div>
+                    <div class="del-row"><span class="del-key">Crime Type</span><span class="del-val">${escapeHtml(crime)}</span></div>
+                    <div class="del-row"><span class="del-key">Neighbourhood</span><span class="del-val">${escapeHtml(nbr)}</span></div>`;
+            }
+            const modal = getEl('delModal');
+            if (modal) modal.classList.add('open');
         }
 
         async function confirmDelete() {
-            const id  = parseInt(document.getElementById('frmId').value) || 0;
+            const id = parseInt(getVal('frmId')) || 0;
             if (!id) return;
-            const btn = document.getElementById('btnConfirmDel');
+            const btn = getEl('btnConfirmDel');
             btn.disabled = true;
             btn.innerHTML = `<span class="spinner"></span> Deleting…`;
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
             try {
-                const res = await fetch(URLS.del(id), {
+                const res = await fetch(API_BASE.delete(id), {
                     method: 'POST',
-                    headers: { 'X-Requested-With':'XMLHttpRequest', 'RequestVerificationToken': token },
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'RequestVerificationToken': token }
                 });
                 if (res.ok) {
-                    showToast('Crime report deleted successfully.', 'success');
+                    showToast('Crime report deleted.', 'success');
                     closeDeleteModal();
                     resetToCreate();
                 } else {
-                    showToast('Failed to delete report.', 'error');
+                    const data = await res.json();
+                    showToast(data.message || 'Failed to delete.', 'error');
                 }
             } catch {
                 showToast('Network error.', 'error');
             } finally {
-                btn.disabled  = false;
-                btn.innerHTML = `<svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z"/></svg> Delete Report`;
+                btn.disabled = false;
+                btn.innerHTML = `<svg width="11" height="11" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5z"/></svg> Delete Report`;
             }
         }
 
-        function closeDeleteModal() { document.getElementById('delModal').classList.remove('open'); }
-
-        // ── Import ────────────────────────────────────────────────────────────
-        // function openImport() {
-        //     document.getElementById('importModal').classList.add('open');
-        //     resetImportUI();
-        // }
-
-        // function closeImport() {
-        //     document.getElementById('importModal').classList.remove('open');
-        //     resetImportUI();
-        // }
-
-        function resetImportUI() {
-            document.getElementById('csvFile').value             = '';
-            document.getElementById('dzFileName').style.display  = 'none';
-            document.getElementById('importProgress').classList.remove('show');
-            document.getElementById('importResult').classList.remove('show');
-            document.getElementById('btnImport').disabled        = true;
-            document.getElementById('progBar').style.width       = '0%';
-            document.getElementById('progText').textContent      = 'Uploading…';
+        function closeDeleteModal() {
+            const modal = getEl('delModal');
+            if (modal) modal.classList.remove('open');
         }
 
-        function onFileSelected(input) { if (input.files[0]) setFile(input.files[0]); }
-
-        function setFile(file) {
-            if (!file.name.toLowerCase().endsWith('.csv')) { showToast('Please select a .csv file.', 'error'); return; }
-            document.getElementById('dzFileNameText').textContent = file.name;
-            document.getElementById('dzFileName').style.display   = 'inline-flex';
-            document.getElementById('btnImport').disabled         = false;
-            document.getElementById('importResult').classList.remove('show');
-        }
-
-        async function doImport() {
-            const fileInput = document.getElementById('csvFile');
-            const file      = fileInput.files[0];
-            if (!file) { showToast('No file selected.', 'error'); return; }
-
-            const skipDupes = document.getElementById('optSkipDuplicates').checked;
-            const btn = document.getElementById('btnImport');
-            btn.disabled  = true;
-            btn.innerHTML = `<span class="spinner"></span> Importing…`;
-
-            const prog = document.getElementById('importProgress');
-            prog.classList.add('show');
-            document.getElementById('progBar').style.width  = '30%';
-            document.getElementById('progText').textContent = 'Uploading file…';
-
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('skipDuplicates', skipDupes);
-            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-
-            try {
-                document.getElementById('progBar').style.width  = '60%';
-                document.getElementById('progText').textContent = 'Processing records…';
-
-                const res = await fetch(URLS.import, {
-                    method: 'POST',
-                    headers: { 'X-Requested-With':'XMLHttpRequest', 'RequestVerificationToken': token },
-                    body: fd
-                });
-
-                document.getElementById('progBar').style.width  = '100%';
-                document.getElementById('progText').textContent = 'Done.';
-
-                const data = await res.json();
-                const el   = document.getElementById('importResult');
-                el.classList.add('show');
-
-                if (res.ok) {
-                    el.className = 'import-result show success';
-                    el.innerHTML = `✓ Imported <strong>${data.inserted}</strong> records. Skipped <strong>${data.skipped}</strong> duplicates.${data.errors > 0 ? ` <br>⚠ ${data.errors} rows had errors.` : ''}`;
-                    showToast(`CSV import complete: ${data.inserted} records added.`, 'success');
-                } else {
-                    el.className = 'import-result show error';
-                    el.textContent = `✕ Import failed: ${data.message || 'Unknown error'}`;
-                    showToast('Import failed.', 'error');
-                }
-            } catch {
-                showToast('Network error during import.', 'error');
-                document.getElementById('progText').textContent = 'Failed.';
-            } finally {
-                btn.disabled  = false;
-                btn.innerHTML = `<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
-                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
-                    </svg> Import Records`;
-            }
-        }
-
-        // ── Helpers ───────────────────────────────────────────────────────────
-        function showErr(id, msg) {
+        // ─── Sidebar scrolling ──────────────────────────────────────────
+        function scrollSec(id) {
             const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ─── Validation UI ──────────────────────────────────────────────
+        function showErr(id, msg) {
+            const el = getEl(id);
             if (!el) return;
             el.textContent = msg;
             el.classList.add('show');
-            el.previousElementSibling?.classList.add('err');
+            const input = el.previousElementSibling;
+            if (input && (input.tagName === 'INPUT' || input.tagName === 'SELECT')) {
+                input.classList.add('has-err');
+            }
         }
 
         function clearErrors() {
             document.querySelectorAll('.field-err').forEach(el => {
                 el.classList.remove('show');
-                el.previousElementSibling?.classList.remove('err');
+                const input = el.previousElementSibling;
+                if (input && (input.tagName === 'INPUT' || input.tagName === 'SELECT')) {
+                    input.classList.remove('has-err');
+                }
             });
         }
 
+        // ─── Toast notifications ────────────────────────────────────────
         function showToast(msg, type = 'success') {
-            const wrap = document.getElementById('toastWrap');
+            const wrap = getEl('toastWrap');
+            if (!wrap) return;
             const t = document.createElement('div');
             t.className = `toast ${type}`;
-            t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'warn' ? '⚠' : '✕'}</span> ${esc(msg)}`;
+            t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : '⚠'}</span> ${escapeHtml(msg)}`;
             wrap.appendChild(t);
-            setTimeout(() => t.remove(), 3100);
+            setTimeout(() => t.remove(), 3200);
         }
 
-        function esc(s) {
-            if (s == null) return '';
-            return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        // ─── Helpers ────────────────────────────────────────────────────
+        function escapeHtml(s) {
+            if (!s) return '';
+            return String(s).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
         }
+
+        // ─── Bootstrap on page load ─────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(location.search);
+            const id   = parseInt(params.get('id')) || 0;
+            const mode = params.get('mode') || '';
+
+            if (id > 0 && mode === 'edit') {
+                loadForEdit(id);
+            }
+
+            // Close delete modal on ESC
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') closeDeleteModal();
+            });
+        });
     </script>
 }

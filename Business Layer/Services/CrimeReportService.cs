@@ -14,50 +14,42 @@ namespace Analysis_Web.Services
             _context = context;
         }
 
-        public async Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(
-            int page, int pageSize, string? search, CrimeType? crimeType,
-            int? year, string? neighborhood, string? sortBy, bool ascending)
+        public async Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(int page, int pageSize,string? search, CrimeType? crimeType, int? year, string? neighborhood,string? sortBy, bool ascending)
         {
-            var query = _context.CrimeReports.AsQueryable();
+            var q = _context.CrimeReports.AsQueryable();
 
-            // Search filter
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var s = search.Trim().ToLower();
-                query = query.Where(r =>
-                    r.FileNumber.ToLower().Contains(s) ||
-                    (r.Neighborhood != null && r.Neighborhood.ToLower().Contains(s)) ||
-                    (r.Location != null && r.Location.ToLower().Contains(s)) ||
-                    (r.ReportingArea != null && r.ReportingArea.ToLower().Contains(s)));
+                var sv = search.ToLower();
+                q = q.Where(r =>
+                    (r.FileNumber != null && r.FileNumber.ToLower().Contains(sv)) ||
+                    (r.Neighborhood != null && r.Neighborhood.ToLower().Contains(sv)) ||
+                    (r.Location != null && r.Location.ToLower().Contains(sv)) ||
+                    (r.ReportingArea != null && r.ReportingArea.ToLower().Contains(sv)) ||
+                    r.CrimeType.ToString().ToLower().Contains(sv));
             }
 
-            if (crimeType.HasValue)
-                query = query.Where(r => r.CrimeType == crimeType.Value);
-
-            if (year.HasValue)
-                query = query.Where(r => r.ReportYear == year.Value);
-
+            if (crimeType.HasValue) q = q.Where(r => r.CrimeType == crimeType.Value);
+            if (year.HasValue) q = q.Where(r => r.ReportYear == year.Value);
             if (!string.IsNullOrWhiteSpace(neighborhood))
-                query = query.Where(r => r.Neighborhood == neighborhood);
+                q = q.Where(r => r.Neighborhood != null && r.Neighborhood.ToLower().Contains(neighborhood.ToLower()));
 
-            // Sorting
-            query = sortBy?.ToLower() switch
+            var total = await q.CountAsync();
+
+            q = (sortBy?.ToLower(), ascending) switch
             {
-                "filenumber" => ascending ? query.OrderBy(r => r.FileNumber) : query.OrderByDescending(r => r.FileNumber),
-                "dateofreport" => ascending ? query.OrderBy(r => r.DateOfReport) : query.OrderByDescending(r => r.DateOfReport),
-                "crimetype" => ascending ? query.OrderBy(r => r.CrimeType) : query.OrderByDescending(r => r.CrimeType),
-                "neighborhood" => ascending ? query.OrderBy(r => r.Neighborhood) : query.OrderByDescending(r => r.Neighborhood),
-                "importedat" => ascending ? query.OrderBy(r => r.ImportedAt) : query.OrderByDescending(r => r.ImportedAt),
-                _ => query.OrderByDescending(r => r.DateOfReport)
+                ("filenumber", true) => q.OrderBy(r => r.FileNumber),
+                ("filenumber", false) => q.OrderByDescending(r => r.FileNumber),
+                ("crimetype", true) => q.OrderBy(r => r.CrimeType),
+                ("crimetype", false) => q.OrderByDescending(r => r.CrimeType),
+                ("neighborhood", true) => q.OrderBy(r => r.Neighborhood),
+                ("neighborhood", false) => q.OrderByDescending(r => r.Neighborhood),
+                (_, true) => q.OrderBy(r => r.DateOfReport),
+                (_, false) => q.OrderByDescending(r => r.DateOfReport),
             };
 
-            var total = await query.CountAsync();
-            var reports = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            return (reports, total);
+            var data = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            return (data, total);
         }
 
         public async Task<CrimeReport?> GetByIdAsync(int id)
@@ -183,6 +175,11 @@ namespace Analysis_Web.Services
                 r => r.FileNumber,
                 r => r.CrimeReportId
             );
+        }
+
+        public async Task<int> GetTotalCountAsync()
+        {
+            return await _context.CrimeReports.CountAsync();
         }
     }
 }

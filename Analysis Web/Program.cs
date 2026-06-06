@@ -16,11 +16,13 @@ builder.Services.AddControllersWithViews();
 builder.Configuration.SetStaticConfiguration();
 
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.CommandTimeout(120) 
+    ));
 
 DefaultConfiguration.SetConnectionString(
     builder.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty);
-
 // Persist auth cookie encryption keys after restart
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(
