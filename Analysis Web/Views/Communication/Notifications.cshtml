@@ -1,0 +1,33 @@
+@model List<Analysis_Web.Controllers.NotificationInboxItem>
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<div class="card">
+    <div class="card-header card-header-primary">
+        <h4 class="card-title">Notifications</h4>
+        <p class="card-category">Messages sent by administrators</p>
+    </div>
+    <div class="card-body">
+        @if (!Model.Any())
+        {
+            <p class="text-muted mb-0">No notifications yet.</p>
+        }
+        else
+        {
+            <div class="list-group">
+                @foreach (var item in Model)
+                {
+                    <a class="list-group-item list-group-item-action" asp-action="NotificationDetails" asp-route-id="@item.NotificationId">
+                        <div class="d-flex justify-content-between">
+                            <strong>@item.Title</strong>
+                            <span class="badge @(item.ReadAtUtc == null ? "bg-primary" : "bg-secondary")">@(item.ReadAtUtc == null ? "Unread" : "Read")</span>
+                        </div>
+                        <div class="small text-muted">Sent by @item.SentBy · @item.SentAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+                        <div class="small mt-1">@((item.Message.Length > 120 ? item.Message[..120] + "..." : item.Message))</div>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>

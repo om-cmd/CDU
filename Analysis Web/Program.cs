@@ -2,6 +2,7 @@ using Analysis_Web.Services;
 using Business_Layer;
 using Business_Layer.DependencyInjection;
 using Business_Layer.Middleware;
+using Business_Layer.Services;
 using Core_Layer;
 using Domain_Layer.Database;
 using Infrastructure.Data;
@@ -73,6 +74,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AnalysisDbContext>();
     await DbSeeder.SeedSuperAdminAsync(dbContext);
+    await CommunicationSchemaInitializer.EnsureCommunicationTablesAsync(dbContext);
     PermissionGenerators.GetPermission(dbContext);
 }
 

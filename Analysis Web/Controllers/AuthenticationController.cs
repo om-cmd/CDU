@@ -13,11 +13,16 @@ namespace YourApp.Controllers
     {
         private readonly AnalysisDbContext _context;
         private readonly IAuthenticationService _authenticationService;
+        private readonly ICommunicationService _communicationService;
 
-        public AuthenticationController(AnalysisDbContext context, IAuthenticationService authenticationService)
+        public AuthenticationController(
+            AnalysisDbContext context,
+            IAuthenticationService authenticationService,
+            ICommunicationService communicationService)
         {
             _context = context;
             _authenticationService = authenticationService;
+            _communicationService = communicationService;
         }
 
         [HttpGet]
@@ -82,6 +87,50 @@ namespace YourApp.Controllers
         {
             _authenticationService.Logout();
             return RedirectToAction("Login", "Authentication");
+        }
+
+        [HttpGet]
+        public IActionResult ForgotPassword()
+        {
+            return View(new ForgotPasswordRequestDto());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto dto)
+        {
+            if (!ModelState.IsValid) return View(dto);
+            var result = await _communicationService.SendPasswordResetOtpAsync(dto.Email);
+            if (!result.Success)
+            {
+                ViewBag.Error = result.Message;
+                return View(dto);
+            }
+
+            TempData["Info"] = result.Message;
+            return RedirectToAction("ResetPassword", new { email = dto.Email });
+        }
+
+        [HttpGet]
+        public IActionResult ResetPassword(string email)
+        {
+            return View(new ResetPasswordDto { Email = email ?? string.Empty });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid) return View(dto);
+            var result = await _communicationService.ResetPasswordAsync(dto);
+            if (!result.Success)
+            {
+                ViewBag.Error = result.Message;
+                return View(dto);
+            }
+
+            TempData["Success"] = result.Message;
+            return RedirectToAction("Login");
         }
     }
 }

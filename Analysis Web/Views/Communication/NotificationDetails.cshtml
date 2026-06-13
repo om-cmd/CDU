@@ -1,0 +1,15 @@
+@model Domain_Layer.DbModels.UserNotificationRecipient
+@{
+    ViewData["Title"] = "Notification Details";
+}
+
+<div class="card">
+    <div class="card-header card-header-info">
+        <h4 class="card-title">@Model.Notification?.Title</h4>
+        <p class="card-category">Sent by @Model.Notification?.CreatedByEmail · @Model.Notification?.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</p>
+    </div>
+    <div class="card-body">
+        <p style="white-space:pre-wrap">@Model.Notification?.Message</p>
+        <a class="btn btn-outline-secondary" asp-action="Notifications">Back to notifications</a>
+    </div>
+</div>

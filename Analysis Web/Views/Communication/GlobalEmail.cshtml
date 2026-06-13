@@ -1,0 +1,210 @@
+@model Core_Layer.ViewModels.CommunicationIndexDto
+@{
+    ViewData["Title"] = "Global Email";
+}
+
+@section Styles {
+    <style>
+        .comm-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,.8fr); gap:1rem; }
+        .comm-card { background:#fff; border:1px solid #e5eaf2; border-radius:8px; padding:1rem; margin-bottom:1rem; }
+        .comm-card h3 { font-size:1rem; font-weight:700; margin:0 0 .75rem; }
+        .user-picker { height:180px; overflow:auto; border:1px solid #dde3ec; border-radius:6px; padding:.5rem; background:#fbfdff; }
+        .history-item { border-bottom:1px solid #eef2f7; padding:.65rem 0; }
+        .history-item:last-child { border-bottom:0; }
+        .actions { display:flex; gap:.4rem; flex-wrap:wrap; }
+        @@media(max-width:1000px){ .comm-grid{grid-template-columns:1fr;} }
+    </style>
+}
+
+<div class="comm-grid">
+    <div>
+        @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
+        @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
+
+        <div class="comm-card">
+            <h3>Email sender</h3>
+            <form asp-action="SendEmail" method="post" id="emailForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="EmailMessageId" id="emailId" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Title</label>
+                        <input class="form-control" name="Title" id="emailTitle" required placeholder="Monthly crime update" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Subject</label>
+                        <input class="form-control" name="Subject" id="emailSubject" required placeholder="Crime Analysis Update" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" name="Body" id="emailBody" rows="6" required placeholder="Write the message body here. The Crime Analysis template, date, and company name are added automatically."></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="SendToAll" value="true" id="emailAll" />
+                            <span class="form-check-label">Send to all active users</span>
+                        </label>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Or select specific users</label>
+                        <div class="user-picker">
+                            @foreach (var user in Model.Users)
+                            {
+                                <label class="d-block small mb-1">
+                                    <input type="checkbox" name="SelectedUserIds" value="@user.UserAccountId" />
+                                    @user.FullName (@user.Email) - @user.UserType
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-12 actions">
+                        <button class="btn btn-primary" type="submit" id="emailSubmit">Send Email</button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="resetEmailForm()">Clear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="comm-card">
+            <h3>Notification sender</h3>
+            <form asp-action="SendNotification" method="post" id="notificationForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="UserNotificationId" id="notificationId" />
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label">Title</label>
+                        <input class="form-control" name="Title" id="notificationTitle" required placeholder="System notice" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notification message</label>
+                        <textarea class="form-control" name="Message" id="notificationMessage" rows="5" required></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-check">
+                            <input class="form-check-input" type="checkbox" name="SendToAll" value="true" />
+                            <span class="form-check-label">Send to all active users</span>
+                        </label>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Or select specific users</label>
+                        <div class="user-picker">
+                            @foreach (var user in Model.Users)
+                            {
+                                <label class="d-block small mb-1">
+                                    <input type="checkbox" name="SelectedUserIds" value="@user.UserAccountId" />
+                                    @user.FullName (@user.Email) - @user.UserType
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-12 actions">
+                        <button class="btn btn-primary" type="submit" id="notificationSubmit">Send Notification</button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="resetNotificationForm()">Clear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <div class="comm-card">
+            <h3>Email history</h3>
+            @foreach (var email in Model.Emails)
+            {
+                <div class="history-item">
+                    <strong>@email.Title</strong>
+                    <div class="small text-muted">@email.Subject · @email.RecipientCount recipient(s) · @email.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+                    @if (Model.CanManage)
+                    {
+                        <div class="actions mt-2">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    type="button"
+                                    data-id="@email.EmailMessageId"
+                                    data-title="@email.Title"
+                                    data-subject="@email.Subject"
+                                    data-body="@email.Body"
+                                    onclick="editEmailFromButton(this)">
+                                Edit
+                            </button>
+                            <form asp-action="DeleteEmail" method="post" onsubmit="return confirm('Delete this email record?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@email.EmailMessageId" />
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="comm-card">
+            <h3>Notification history</h3>
+            @foreach (var notification in Model.Notifications)
+            {
+                <div class="history-item">
+                    <strong>@notification.Title</strong>
+                    <div class="small text-muted">@notification.RecipientCount recipient(s) · @notification.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</div>
+                    @if (Model.CanManage)
+                    {
+                        <div class="actions mt-2">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    type="button"
+                                    data-id="@notification.UserNotificationId"
+                                    data-title="@notification.Title"
+                                    data-message="@notification.Message"
+                                    onclick="editNotificationFromButton(this)">
+                                Edit
+                            </button>
+                            <form asp-action="DeleteNotification" method="post" onsubmit="return confirm('Delete this notification?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@notification.UserNotificationId" />
+                                <button class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function editEmailFromButton(btn) {
+            editEmail(btn.dataset.id, btn.dataset.title, btn.dataset.subject, btn.dataset.body);
+        }
+
+        function editNotificationFromButton(btn) {
+            editNotification(btn.dataset.id, btn.dataset.title, btn.dataset.message);
+        }
+
+        function editEmail(id, title, subject, body) {
+            document.getElementById('emailId').value = id;
+            document.getElementById('emailTitle').value = title;
+            document.getElementById('emailSubject').value = subject;
+            document.getElementById('emailBody').value = body;
+            document.getElementById('emailSubmit').textContent = 'Update Email Record';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetEmailForm() {
+            document.getElementById('emailForm').reset();
+            document.getElementById('emailId').value = '';
+            document.getElementById('emailSubmit').textContent = 'Send Email';
+        }
+
+        function editNotification(id, title, message) {
+            document.getElementById('notificationId').value = id;
+            document.getElementById('notificationTitle').value = title;
+            document.getElementById('notificationMessage').value = message;
+            document.getElementById('notificationSubmit').textContent = 'Update Notification';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetNotificationForm() {
+            document.getElementById('notificationForm').reset();
+            document.getElementById('notificationId').value = '';
+            document.getElementById('notificationSubmit').textContent = 'Send Notification';
+        }
+    </script>
+}

@@ -12,6 +12,8 @@ public static class ServiceInjector
         services.AddScoped<IAuthenticationService, AuthenticationService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<ICrimeReportInterface, CrimeReportService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<ICommunicationService, CommunicationService>();
 
         return services;
     }

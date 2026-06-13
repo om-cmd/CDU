@@ -63,6 +63,21 @@
                             <p>Prediction Analysis</p>
                         </a>
                     </li>
+                    @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
+                    {
+                        <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Communication" && ViewContext.RouteData.Values["action"]?.ToString() == "GlobalEmail" ? "active" : "")">
+                            <a class="nav-link" asp-controller="Communication" asp-action="GlobalEmail">
+                                <i class="material-icons">outgoing_mail</i>
+                                <p>Global Email</p>
+                            </a>
+                        </li>
+                    }
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Communication" && ViewContext.RouteData.Values["action"]?.ToString() == "Notifications" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Communication" asp-action="Notifications">
+                            <i class="material-icons">notifications</i>
+                            <p>Notifications</p>
+                        </a>
+                    </li>
                     @if (Business_Layer.ViewPermissionChecker.HasPermission(Convert.ToInt32(userId), "RoleList"))
                     {
                         <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Role" ? "active" : "")">
@@ -114,16 +129,11 @@
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link" href="javascript:;" id="navbarDropdownMenuLink"
-                                       data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <a class="nav-link" asp-controller="Communication" asp-action="Notifications" id="navbarDropdownMenuLink">
                                     <i class="material-icons">notifications</i>
-                                    <span class="notification">5</span>
+                                    <span class="notification" id="notificationBadge" style="display:none;">0</span>
                                     <p class="d-lg-none d-md-block">Notifications</p>
                                 </a>
-                                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownMenuLink">
-                                    <a class="dropdown-item" href="#">You have 5 new tasks</a>
-                                    <a class="dropdown-item" href="#">Another Notification</a>
-                                </div>
                             </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link" href="javascript:;" id="navbarDropdownProfile"
@@ -179,6 +189,18 @@
     <!-- Material Dashboard JS -->
     <script src="~/assets/js/material-dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        fetch('@Url.Action("NotificationCount", "Communication")')
+            .then(r => r.ok ? r.json() : { count: 0 })
+            .then(data => {
+                const badge = document.getElementById('notificationBadge');
+                if (badge && data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.style.display = '';
+                }
+            })
+            .catch(() => {});
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 
 </body>
