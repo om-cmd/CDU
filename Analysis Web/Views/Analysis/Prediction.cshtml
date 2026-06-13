@@ -1,0 +1,463 @@
+@{
+    ViewData["Title"] = "Prediction Analysis";
+}
+
+@section Styles {
+    <style>
+        .analysis-page {
+            color: #172033;
+        }
+
+        .analysis-shell {
+            background: #f7f9fc;
+            border: 1px solid #e6ebf2;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-title h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #101827;
+        }
+
+        .analysis-title p {
+            margin: .25rem 0 0;
+            color: #667085;
+            max-width: 760px;
+        }
+
+        .analysis-controls {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(120px, 1fr));
+            gap: .75rem;
+            align-items: end;
+        }
+
+        .analysis-controls label {
+            display: block;
+            font-size: .72rem;
+            font-weight: 700;
+            color: #4b5563;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: .25rem;
+        }
+
+        .analysis-controls input,
+        .analysis-controls select {
+            width: 100%;
+            height: 38px;
+            border: 1px solid #d7deea;
+            border-radius: 6px;
+            padding: .45rem .65rem;
+            background: #fff;
+            color: #172033;
+        }
+
+        .btn-run-analysis {
+            height: 38px;
+            border: none;
+            border-radius: 6px;
+            background: #1f6feb;
+            color: #fff;
+            font-weight: 700;
+            padding: 0 .95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            width: 100%;
+        }
+
+        .btn-run-analysis:disabled {
+            opacity: .65;
+            cursor: not-allowed;
+        }
+
+        .analysis-kpis {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: .85rem;
+            margin-bottom: 1rem;
+        }
+
+        .analysis-kpi {
+            background: #fff;
+            border: 1px solid #e6ebf2;
+            border-radius: 8px;
+            padding: .9rem;
+        }
+
+        .analysis-kpi span {
+            display: block;
+            color: #667085;
+            font-size: .72rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .analysis-kpi strong {
+            display: block;
+            font-size: 1.45rem;
+            color: #111827;
+            margin-top: .25rem;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+            gap: 1rem;
+        }
+
+        .analysis-panel {
+            background: #fff;
+            border: 1px solid #e6ebf2;
+            border-radius: 8px;
+            padding: 1rem;
+            min-width: 0;
+        }
+
+        .analysis-panel h3 {
+            margin: 0 0 .75rem;
+            font-size: .98rem;
+            font-weight: 700;
+            color: #172033;
+        }
+
+        .chart-box {
+            height: 310px;
+            position: relative;
+        }
+
+        .hotspot-list {
+            display: grid;
+            gap: .55rem;
+        }
+
+        .hotspot-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: .35rem .75rem;
+            border-bottom: 1px solid #eef2f7;
+            padding-bottom: .55rem;
+        }
+
+        .hotspot-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .hotspot-item strong {
+            color: #111827;
+            font-size: .88rem;
+        }
+
+        .hotspot-item span {
+            color: #667085;
+            font-size: .75rem;
+        }
+
+        .risk-pill {
+            background: #fff3e6;
+            color: #9a4d00;
+            border-radius: 999px;
+            padding: .15rem .5rem;
+            font-weight: 700;
+            font-size: .72rem;
+            align-self: start;
+        }
+
+        .analysis-status {
+            display: none;
+            border-radius: 8px;
+            padding: .75rem .9rem;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .analysis-status.show {
+            display: block;
+        }
+
+        .analysis-status.info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .analysis-status.error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        .spinner-mini {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.4);
+            border-top-color: #fff;
+            display: inline-block;
+            animation: spin .7s linear infinite;
+        }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @@media (max-width: 1100px) {
+            .analysis-controls {
+                grid-template-columns: repeat(3, minmax(150px, 1fr));
+            }
+
+            .analysis-kpis {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 640px) {
+            .analysis-controls,
+            .analysis-kpis {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<div class="analysis-page">
+    <div class="analysis-shell">
+        <div class="analysis-title">
+            <div>
+                <h2>Severity-Aware Crime Prediction</h2>
+                <p>Runs the research-paper style pipeline against the live CrimeReports table: severity scoring, time aggregation, lag/rolling features, and gradient-boosted forecasts from the Python API.</p>
+            </div>
+        </div>
+
+        @Html.AntiForgeryToken()
+
+        <div class="analysis-controls">
+            <div>
+                <label for="frequency">Frequency</label>
+                <select id="frequency">
+                    <option value="W">Weekly</option>
+                    <option value="D">Daily</option>
+                </select>
+            </div>
+            <div>
+                <label for="forecastPeriods">Forecast Periods</label>
+                <input id="forecastPeriods" type="number" value="12" min="1" max="90" />
+            </div>
+            <div>
+                <label for="pageSize">Rows to Analyze</label>
+                <input id="pageSize" type="number" value="100000" min="100" max="250000" step="1000" />
+            </div>
+            <div>
+                <label for="neighborhood">Neighborhood</label>
+                <input id="neighborhood" placeholder="All neighborhoods" />
+            </div>
+            <div>
+                <label for="crimeType">Crime Type</label>
+                <input id="crimeType" placeholder="All crime types" />
+            </div>
+            <div>
+                <button id="btnRunAnalysis" class="btn-run-analysis" type="button">
+                    <i class="material-icons" style="font-size:18px;">analytics</i>
+                    Run Analysis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="analysisStatus" class="analysis-status info">Ready.</div>
+
+    <div class="analysis-kpis">
+        <div class="analysis-kpi"><span>Total Reports</span><strong id="kpiReports">—</strong></div>
+        <div class="analysis-kpi"><span>Rows Sent</span><strong id="kpiRows">—</strong></div>
+        <div class="analysis-kpi"><span>Mean Severity</span><strong id="kpiSeverity">—</strong></div>
+        <div class="analysis-kpi"><span>Model MAE</span><strong id="kpiMae">—</strong></div>
+    </div>
+
+    <div class="analysis-grid">
+        <div class="analysis-panel">
+            <h3>Crime Count Forecast</h3>
+            <div class="chart-box"><canvas id="countForecastChart"></canvas></div>
+        </div>
+        <div class="analysis-panel">
+            <h3>Highest Risk Hotspots</h3>
+            <div id="hotspots" class="hotspot-list">
+                <div class="text-muted">Run analysis to load hotspots.</div>
+            </div>
+        </div>
+        <div class="analysis-panel">
+            <h3>Severity Forecast</h3>
+            <div class="chart-box"><canvas id="severityForecastChart"></canvas></div>
+        </div>
+        <div class="analysis-panel">
+            <h3>Top Severity Crime Types</h3>
+            <div class="chart-box"><canvas id="severityTypeChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const runUrl = '@Url.Action("Run", "Analysis")';
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        let countChart = null;
+        let severityChart = null;
+        let typeChart = null;
+
+        document.getElementById('btnRunAnalysis').addEventListener('click', runAnalysis);
+
+        function setStatus(message, kind = 'info') {
+            const el = document.getElementById('analysisStatus');
+            el.textContent = message;
+            el.className = `analysis-status show ${kind}`;
+        }
+
+        async function runAnalysis() {
+            const btn = document.getElementById('btnRunAnalysis');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-mini"></span> Running';
+            setStatus('Running Python severity and forecasting pipeline. Keep the FastAPI service open on port 8001.', 'info');
+
+            const payload = {
+                frequency: document.getElementById('frequency').value,
+                forecastPeriods: Number(document.getElementById('forecastPeriods').value || 12),
+                pageSize: Number(document.getElementById('pageSize').value || 100000),
+                neighborhood: valueOrNull('neighborhood'),
+                crimeType: valueOrNull('crimeType')
+            };
+
+            try {
+                const res = await fetch(runUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || 'Analysis failed.');
+                }
+
+                renderAnalysis(data);
+                setStatus(`Analysis complete. ${data.rowsSentToPython.toLocaleString()} rows sent to Python.`, 'info');
+            } catch (err) {
+                setStatus(err.message || 'Could not run analysis.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="material-icons" style="font-size:18px;">analytics</i> Run Analysis';
+            }
+        }
+
+        function valueOrNull(id) {
+            const value = document.getElementById(id).value.trim();
+            return value.length ? value : null;
+        }
+
+        function renderAnalysis(data) {
+            const result = data.pythonResult;
+            const summary = result.summary || {};
+            const severity = result.severity || {};
+            const countForecast = result.forecasts?.crimeCount || {};
+            const severityForecast = result.forecasts?.severityTotal || {};
+
+            document.getElementById('kpiReports').textContent = Number(summary.totalReports || 0).toLocaleString();
+            document.getElementById('kpiRows').textContent = Number(data.rowsSentToPython || 0).toLocaleString();
+            document.getElementById('kpiSeverity').textContent = Number(severity.meanCss || 0).toFixed(3);
+            document.getElementById('kpiMae').textContent = countForecast.metrics?.mae == null ? '—' : Number(countForecast.metrics.mae).toFixed(2);
+
+            countChart = drawForecastChart('countForecastChart', countChart, countForecast, 'Crime Count', '#1f6feb');
+            severityChart = drawForecastChart('severityForecastChart', severityChart, severityForecast, 'Severity Total', '#c2410c');
+            typeChart = drawTypeChart('severityTypeChart', typeChart, severity.topSeverityCrimeTypes || []);
+            renderHotspots(result.hotspots || []);
+        }
+
+        function drawForecastChart(canvasId, existing, forecast, label, color) {
+            if (existing) existing.destroy();
+            const history = forecast.history || [];
+            const future = forecast.future || [];
+            const labels = history.map(x => x.period).concat(future.map(x => x.period));
+            const actual = history.map(x => x.actual).concat(future.map(() => null));
+            const predicted = history.map(() => null).concat(future.map(x => x.predicted));
+
+            return new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: `${label} Actual`, data: actual, borderColor: '#334155', backgroundColor: 'transparent', tension: .25, pointRadius: 0 },
+                        { label: `${label} Forecast`, data: predicted, borderColor: color, backgroundColor: `${color}22`, tension: .25, pointRadius: 2, fill: true }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { x: { ticks: { maxTicksLimit: 10 } } }
+                }
+            });
+        }
+
+        function drawTypeChart(canvasId, existing, rows) {
+            if (existing) existing.destroy();
+            const top = rows.slice(0, 10);
+            return new Chart(document.getElementById(canvasId), {
+                type: 'bar',
+                data: {
+                    labels: top.map(x => x.crime_type || x.crimeType || 'Unknown'),
+                    datasets: [{ label: 'Total CSS', data: top.map(x => x.totalCss || 0), backgroundColor: '#0f766e', borderRadius: 5 }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function renderHotspots(rows) {
+            const container = document.getElementById('hotspots');
+            if (!rows.length) {
+                container.innerHTML = '<div class="text-muted">No hotspots returned.</div>';
+                return;
+            }
+
+            container.innerHTML = rows.slice(0, 10).map(row => `
+                <div class="hotspot-item">
+                    <div>
+                        <strong>${escapeHtml(row.neighborhood || 'Unknown')}</strong>
+                        <span>${escapeHtml(row.crime_type || row.crimeType || 'Unknown')} · ${Number(row.count || 0).toLocaleString()} reports</span>
+                    </div>
+                    <div class="risk-pill">${Number(row.riskScore || 0).toFixed(1)}</div>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+        }
+    </script>
+}

@@ -57,6 +57,12 @@
                             <p>Crime Report</p>
                         </a>
                     </li>
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Analysis" asp-action="Prediction">
+                            <i class="material-icons">insights</i>
+                            <p>Prediction Analysis</p>
+                        </a>
+                    </li>
                     @if (Business_Layer.ViewPermissionChecker.HasPermission(Convert.ToInt32(userId), "RoleList"))
                     {
                         <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Role" ? "active" : "")">

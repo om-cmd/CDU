@@ -60,6 +60,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddService();
+builder.Services.AddHttpClient("CrimeAnalysisPython", client =>
+{
+    var baseUrl = builder.Configuration["PythonAnalysisApi:BaseUrl"] ?? "http://localhost:8001";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);
+});
 
 var app = builder.Build();
 

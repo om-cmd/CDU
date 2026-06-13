@@ -19,26 +19,32 @@
 
     <style>
         :root {
-            --brand: #2563eb;
-            --brand-dark: #1d4ed8;
+            --brand: #1f6feb;
+            --brand-dark: #174ea6;
+            --ink: #111827;
         }
 
         body {
             min-height: 100vh;
-            background: linear-gradient(135deg, #f0f4ff 0%, #e8edfb 100%);
+            background:
+                linear-gradient(120deg, rgba(8, 15, 28, .84), rgba(15, 23, 42, .58)),
+                url('/assets/img/city.jpg') center/cover no-repeat;
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 1rem;
         }
 
         .auth-card {
             width: 100%;
-            max-width: 440px;
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 8px 40px rgba(37,99,235,.12);
+            max-width: 430px;
+            background: rgba(255,255,255,.96);
+            border: 1px solid rgba(255,255,255,.65);
+            border-radius: 14px;
+            box-shadow: 0 24px 80px rgba(0,0,0,.34);
             padding: 2.5rem 2.25rem;
+            backdrop-filter: blur(10px);
         }
 
         .auth-logo {
@@ -47,15 +53,16 @@
         }
 
         .auth-logo img {
-            width: 64px;
+            width: 68px;
             height: auto;
             display: inline-block;
+            filter: drop-shadow(0 8px 18px rgba(31,111,235,.22));
         }
 
         .auth-title {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #111;
+            color: var(--ink);
             text-align: center;
         }
 
@@ -104,6 +111,7 @@
             font-weight: 600;
             font-size: .9375rem;
             width: 100%;
+            box-shadow: 0 10px 24px rgba(31,111,235,.24);
         }
 
         .btn-brand:hover {

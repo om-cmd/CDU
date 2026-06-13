@@ -1,6 +1,7 @@
 using Business_Layer.DependencyInjection;
 using Domain_Layer.Database;
 using Microsoft.EntityFrameworkCore;
+using Web_API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,8 @@ builder.Services.AddHttpClient("CrimeAnalysisPython", client =>
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
