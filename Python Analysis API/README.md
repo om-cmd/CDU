@@ -31,3 +31,19 @@ http://localhost:8001/docs
 - `POST /api/v1/crime/analyze-csv` accepts the CSV file directly.
 
 The .NET Web API calls `http://localhost:8001/api/v1/crime/analyze` through `POST /api/crime-analysis/from-database`.
+
+## Data Quality And Model Preparation
+
+Before analysis, the API now applies a dedicated preprocessing stage:
+
+- Rejects required analytical columns when more than 60% of their values are missing.
+- Drops non-required columns with more than 60% missing values.
+- Drops rows with more than 60% missing values.
+- Drops rows missing required analysis fields after normalization.
+- Removes duplicate records.
+- Removes anomaly rows such as negative age values, invalid latitude/longitude, and future incident dates.
+- Applies label encoding to crime type, neighborhood, and reporting area.
+- Adds encoded-category aggregate features into the forecasting time series.
+- Scales model features with `StandardScaler` before training.
+
+The API response includes a `dataQuality` section showing rejected columns, dropped rows, anomaly counts, encoding information, and scaling details.

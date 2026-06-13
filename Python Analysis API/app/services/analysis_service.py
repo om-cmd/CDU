@@ -9,8 +9,11 @@ import pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.inspection import permutation_importance
 from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from app.schemas import CrimeAnalysisRequest
+from app.services.preprocessing import preprocess_for_analysis
 from app.services.severity import add_severity_columns
 
 
@@ -77,13 +80,15 @@ def analyze_dataframe(frame: pd.DataFrame, frequency: str = "D", forecast_period
     frequency = "W" if frequency.upper().startswith("W") else "D"
     forecast_periods = int(max(1, min(forecast_periods, 90)))
 
-    enriched = add_severity_columns(frame)
+    preprocessed = preprocess_for_analysis(frame)
+    enriched = add_severity_columns(preprocessed.frame)
     series = build_time_series(enriched, frequency)
     count_forecast = train_and_forecast(series, target="crime_count", periods=forecast_periods, frequency=frequency)
     severity_forecast = train_and_forecast(series, target="severity_total", periods=forecast_periods, frequency=frequency)
 
     return {
         "summary": build_summary(enriched),
+        "dataQuality": preprocessed.report,
         "severity": build_severity_summary(enriched),
         "timeSeries": series.tail(120).reset_index().to_dict(orient="records"),
         "forecasts": {
@@ -93,7 +98,8 @@ def analyze_dataframe(frame: pd.DataFrame, frequency: str = "D", forecast_period
         "hotspots": build_hotspots(enriched),
         "methodology": {
             "severityScoring": "Rule-based NIBRS-style offence labelling, imprisonment-day harm weights, ONS-inspired proportionality multipliers, log-normalised CSS.",
-            "forecasting": "Chronological split with lag, rolling, cyclical calendar, count, and severity features. Primary model is HistGradientBoostingRegressor with RandomForest fallback.",
+            "preprocessing": "Rejects columns/rows over 60% missingness, removes invalid dates/coordinates/negative age anomalies, de-duplicates records, label-encodes categorical crime fields, and scales model features.",
+            "forecasting": "Chronological split with lag, rolling, cyclical calendar, count, severity, and encoded categorical features. Primary model is scaled HistGradientBoostingRegressor with scaled RandomForest fallback.",
             "frequency": frequency,
         },
     }
@@ -151,12 +157,20 @@ def build_hotspots(frame: pd.DataFrame) -> list[dict]:
 
 def build_time_series(frame: pd.DataFrame, frequency: str) -> pd.DataFrame:
     indexed = frame.set_index("incident_at").sort_index()
+    aggregations = {
+        "crime_count": ("crime_type", "size"),
+        "severity_total": ("css", "sum"),
+        "severity_mean": ("css", "mean"),
+        "unique_crime_types": ("crime_type", "nunique"),
+        "unique_neighborhoods": ("neighborhood", "nunique"),
+    }
+    for column in ["crime_type_code", "neighborhood_code", "reporting_area_code"]:
+        if column in indexed.columns:
+            aggregations[f"{column}_mean"] = (column, "mean")
+            aggregations[f"{column}_diversity"] = (column, "nunique")
+
     series = indexed.resample(frequency).agg(
-        crime_count=("crime_type", "size"),
-        severity_total=("css", "sum"),
-        severity_mean=("css", "mean"),
-        unique_crime_types=("crime_type", "nunique"),
-        unique_neighborhoods=("neighborhood", "nunique"),
+        **aggregations
     )
     series["severity_mean"] = series["severity_mean"].fillna(0)
     series = series.fillna(0)
@@ -198,11 +212,21 @@ def train_and_forecast(series: pd.DataFrame, target: str, periods: int, frequenc
     x_train, x_test = x.iloc[:split], x.iloc[split:]
     y_train, y_test = y.iloc[:split], y.iloc[split:]
 
-    model = HistGradientBoostingRegressor(max_iter=250, learning_rate=0.06, l2_regularization=0.05, random_state=42)
+    model = Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            ("model", HistGradientBoostingRegressor(max_iter=250, learning_rate=0.06, l2_regularization=0.05, random_state=42)),
+        ]
+    )
     try:
         model.fit(x_train, y_train)
     except ValueError:
-        model = RandomForestRegressor(n_estimators=200, min_samples_leaf=2, random_state=42, n_jobs=-1)
+        model = Pipeline(
+            steps=[
+                ("scaler", StandardScaler()),
+                ("model", RandomForestRegressor(n_estimators=200, min_samples_leaf=2, random_state=42, n_jobs=-1)),
+            ]
+        )
         model.fit(x_train, y_train)
 
     predictions = np.maximum(model.predict(x_test), 0) if len(x_test) else np.array([])
@@ -216,7 +240,7 @@ def train_and_forecast(series: pd.DataFrame, target: str, periods: int, frequenc
 
     return {
         "target": target,
-        "model": model.__class__.__name__,
+        "model": model_name(model),
         "metrics": metrics,
         "featureImportance": importance,
         "history": [
@@ -230,6 +254,12 @@ def train_and_forecast(series: pd.DataFrame, target: str, periods: int, frequenc
 def feature_importance(model, x: pd.DataFrame, y: pd.Series, feature_columns: list[str]) -> list[dict]:
     if len(x) < 5:
         return []
+
+
+def model_name(model) -> str:
+    if hasattr(model, "named_steps") and "model" in model.named_steps:
+        return f"StandardScaler+{model.named_steps['model'].__class__.__name__}"
+    return model.__class__.__name__
     try:
         result = permutation_importance(model, x, y, n_repeats=5, random_state=42)
         pairs = sorted(zip(feature_columns, result.importances_mean), key=lambda item: item[1], reverse=True)
@@ -252,17 +282,15 @@ def recursive_forecast(
     output: list[dict] = []
     for _ in range(periods):
         next_index = working.index.max() + step
-        next_row = pd.DataFrame(
-            {
-                "crime_count": [working["crime_count"].tail(14).mean()],
-                "severity_total": [working["severity_total"].tail(14).mean()],
-                "severity_mean": [working["severity_mean"].tail(14).mean()],
-                "unique_crime_types": [working["unique_crime_types"].tail(14).mean()],
-                "unique_neighborhoods": [working["unique_neighborhoods"].tail(14).mean()],
-            },
-            index=[next_index],
-        )
-        working = pd.concat([working[["crime_count", "severity_total", "severity_mean", "unique_crime_types", "unique_neighborhoods"]], next_row])
+        base_columns = [
+            column
+            for column in working.columns
+            if not any(marker in column for marker in ["_lag_", "_roll_mean_", "_roll_std_"])
+            and column not in {"year", "month", "day_of_week", "is_weekend", "month_sin", "month_cos", "dow_sin", "dow_cos"}
+        ]
+        next_values = {column: [working[column].tail(14).mean()] for column in base_columns}
+        next_row = pd.DataFrame(next_values, index=[next_index])
+        working = pd.concat([working[base_columns], next_row])
         working = add_features(working)
         prediction = max(float(model.predict(working[feature_columns].tail(1))[0]), 0.0)
         working.loc[next_index, target] = prediction
