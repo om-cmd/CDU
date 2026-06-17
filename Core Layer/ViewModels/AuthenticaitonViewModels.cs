@@ -67,6 +67,53 @@ namespace Core_Layer.ViewModels
         public string UserType { get; set; }
         public string UserImage { get; set; }
     }
+
+    public class UserProfileDto
+    {
+        public int UserAccountId { get; set; }
+
+        [Required(ErrorMessage = "Full name is required.")]
+        [StringLength(120, ErrorMessage = "Full name cannot exceed 120 characters.")]
+        public string FullName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string UserName { get; set; } = string.Empty;
+
+        [StringLength(80, ErrorMessage = "Department cannot exceed 80 characters.")]
+        public string? Department { get; set; }
+
+        [Phone]
+        [StringLength(20, ErrorMessage = "Phone number cannot exceed 20 characters.")]
+        public string? Contact { get; set; }
+
+        [DataType(DataType.Date)]
+        public DateTime? DateOfBirth { get; set; }
+
+        [StringLength(255, ErrorMessage = "Address cannot exceed 255 characters.")]
+        public string? Address { get; set; }
+
+        [StringLength(100, ErrorMessage = "City cannot exceed 100 characters.")]
+        public string? City { get; set; }
+
+        [StringLength(100, ErrorMessage = "State cannot exceed 100 characters.")]
+        public string? State { get; set; }
+
+        [StringLength(100, ErrorMessage = "Country cannot exceed 100 characters.")]
+        public string? Country { get; set; }
+
+        [StringLength(20, ErrorMessage = "Postal code cannot exceed 20 characters.")]
+        public string? PostalCode { get; set; }
+
+        public int? Gender { get; set; }
+        public string? ImageUrl { get; set; }
+        public string UserType { get; set; } = string.Empty;
+        public bool EmailConfirmedStatus { get; set; }
+        public DateTime? LastLoginAt { get; set; }
+    }
     public class UserTokens
     {
         public long UserId { get; set; }

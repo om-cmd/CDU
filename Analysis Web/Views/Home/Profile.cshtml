@@ -1,0 +1,283 @@
+@model Core_Layer.ViewModels.UserProfileDto
+
+@{
+    ViewData["Title"] = "Profile";
+    string Initials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "U";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Take(2).Select(x => char.ToUpperInvariant(x[0])));
+    }
+
+    var profileImage = string.IsNullOrWhiteSpace(Model.ImageUrl) ? null : Model.ImageUrl;
+}
+
+@section Styles {
+    <style>
+        .profile-page {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+
+        .profile-card {
+            background: #fff;
+            border: 1px solid #e5edf5;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+            padding: 20px;
+            min-width: 0;
+        }
+
+        .profile-avatar {
+            width: 132px;
+            height: 132px;
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            background: linear-gradient(135deg, #012169, #2f65d9);
+            color: #fff;
+            font-size: 38px;
+            font-weight: 900;
+            border: 4px solid #eaf1ff;
+        }
+
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-name {
+            text-align: center;
+            margin: 0;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .profile-role {
+            text-align: center;
+            color: #64748b;
+            margin: 5px 0 18px;
+        }
+
+        .profile-meta {
+            display: grid;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .profile-meta strong {
+            display: block;
+            color: #0f172a;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .profile-empty {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .profile-section-title {
+            margin: 0 0 16px;
+            color: #012169;
+            font-size: 20px;
+            font-weight: 900;
+        }
+
+        .profile-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .profile-form-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .form-control[readonly] {
+            background: #f8fafc;
+            color: #64748b;
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 18px;
+        }
+
+        @@media (max-width: 900px) {
+            .profile-grid,
+            .profile-form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<div class="profile-page">
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success">@success</div>
+    }
+
+    <div class="profile-grid">
+        <aside class="profile-card">
+            <div class="profile-avatar">
+                @if (profileImage != null)
+                {
+                    <img src="@profileImage" alt="Profile picture" />
+                }
+                else
+                {
+                    <span>@Initials(Model.FullName)</span>
+                }
+            </div>
+
+            <h2 class="profile-name">@Model.FullName</h2>
+            <p class="profile-role">@Model.UserType</p>
+
+            <div class="profile-meta">
+                <div>
+                    <strong>Email</strong>
+                    <span>@Model.Email</span>
+                </div>
+                <div>
+                    <strong>Phone</strong>
+                    <span class="@(string.IsNullOrWhiteSpace(Model.Contact) ? "profile-empty" : "")">@(string.IsNullOrWhiteSpace(Model.Contact) ? "Not added" : Model.Contact)</span>
+                </div>
+                <div>
+                    <strong>Address</strong>
+                    <span class="@(string.IsNullOrWhiteSpace(Model.Address) ? "profile-empty" : "")">@(string.IsNullOrWhiteSpace(Model.Address) ? "Not added" : Model.Address)</span>
+                </div>
+                <div>
+                    <strong>Email Confirmation</strong>
+                    <span>@(Model.EmailConfirmedStatus ? "Confirmed" : "Not confirmed")</span>
+                </div>
+                <div>
+                    <strong>Last Login</strong>
+                    <span class="@(Model.LastLoginAt.HasValue ? "" : "profile-empty")">@(Model.LastLoginAt?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "Not available")</span>
+                </div>
+            </div>
+        </aside>
+
+        <section class="profile-card">
+            <h1 class="profile-section-title">Update Profile</h1>
+            <form asp-action="Profile" asp-controller="Home" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input asp-for="UserAccountId" type="hidden" />
+                <input asp-for="ImageUrl" type="hidden" />
+                <input asp-for="UserType" type="hidden" />
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <div class="profile-form-grid">
+                    <div>
+                        <label asp-for="FullName" class="form-label">Full Name</label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Department" class="form-label">Department</label>
+                        <input asp-for="Department" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="Department" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Email" class="form-label">Email</label>
+                        <input asp-for="Email" class="form-control" readonly />
+                    </div>
+
+                    <div>
+                        <label asp-for="UserName" class="form-label">Username</label>
+                        <input asp-for="UserName" class="form-control" readonly />
+                    </div>
+
+                    <div>
+                        <label class="form-label">Role</label>
+                        <input value="@Model.UserType" class="form-control" readonly />
+                        <small class="text-muted">Roles are managed only from the Roles page.</small>
+                    </div>
+
+                    <div>
+                        <label asp-for="Contact" class="form-label">Phone</label>
+                        <input asp-for="Contact" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="Contact" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="DateOfBirth" class="form-label">Date of Birth</label>
+                        <input asp-for="DateOfBirth" class="form-control" type="date" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Gender" class="form-label">Gender</label>
+                        <select asp-for="Gender" class="form-control">
+                            <option value="">Not specified</option>
+                            <option value="1">Female</option>
+                            <option value="2">Male</option>
+                            <option value="3">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="full">
+                        <label asp-for="Address" class="form-label">Address</label>
+                        <input asp-for="Address" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="City" class="form-label">City</label>
+                        <input asp-for="City" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="City" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="State" class="form-label">State</label>
+                        <input asp-for="State" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="State" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="Country" class="form-label">Country</label>
+                        <input asp-for="Country" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="Country" class="text-danger small"></span>
+                    </div>
+
+                    <div>
+                        <label asp-for="PostalCode" class="form-label">Postal Code</label>
+                        <input asp-for="PostalCode" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="PostalCode" class="text-danger small"></span>
+                    </div>
+
+                    <div class="full">
+                        <label for="profileImage" class="form-label">Profile Picture</label>
+                        <input id="profileImage" name="profileImage" class="form-control" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" />
+                        <small class="text-muted">Optional. JPG, PNG, or WEBP up to 2 MB.</small>
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Profile</button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -4,7 +4,28 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="e2b9b46d-7b49-49b0-8a79-ab00fe05d8eb" name="Changes" comment="" />
+    <list default="true" id="e2b9b46d-7b49-49b0-8a79-ab00fe05d8eb" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/AnalysisController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/AnalysisController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CommunicationController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CommunicationController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeDataController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeDataController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeReportController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeReportController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/HomeController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/HomeController.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Analysis/CrimeDashboard.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Analysis/CrimeDashboard.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Analysis/HarmDashboard.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Analysis/HarmDashboard.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/Index.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/Index.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Shared/_Layout.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Shared/_Layout.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Interface/ICommunicationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Interface/ICommunicationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Services/CommunicationSchemaInitializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CommunicationSchemaInitializer.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Services/CommunicationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CommunicationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Services/CrimeReportService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CrimeReportService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/AuthenticaitonViewModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/AuthenticaitonViewModels.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/CommunicationViewModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/CommunicationViewModels.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/DashboardStatsModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/DashboardStatsModel.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web API/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web API/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Web API/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/Web API/appsettings.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -13,34 +34,36 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4,
-  "fromUser": false
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4,
+  &quot;fromUser&quot;: false
+}</component>
   <component name="ProjectId" id="3F4H6msSd9sY6V246cHrmrxYGnr" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
-    "codeWithMe.voiceChat.enabledByDefault": "false",
-    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
-    "git-widget-placeholder": "master",
-    "ignore.virus.scanning.warn.message": "true",
-    "junie.onboarding.icon.badge.shown": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -56,6 +79,8 @@
       <option name="presentableId" value="Default" />
       <updated>1781327249783</updated>
       <workItem from="1781327253168" duration="373000" />
+      <workItem from="1781693216399" duration="751000" />
+      <workItem from="1781695102919" duration="1285000" />
     </task>
     <servers />
   </component>

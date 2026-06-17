@@ -5,6 +5,7 @@ using Core_Layer.HelperMethod;
 using Core_Layer.ViewModels;
 using Domain_Layer.DbModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Business_Layer.Services;
 
@@ -13,11 +14,13 @@ public class CommunicationService : ICommunicationService
     private const int OtpMinutes = 3;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEmailSender _emailSender;
+    private readonly ILogger<CommunicationService> _logger;
 
-    public CommunicationService(IUnitOfWork unitOfWork, IEmailSender emailSender)
+    public CommunicationService(IUnitOfWork unitOfWork, IEmailSender emailSender, ILogger<CommunicationService> logger)
     {
         _unitOfWork = unitOfWork;
         _emailSender = emailSender;
+        _logger = logger;
     }
 
     public async Task<(bool Success, string Message)> SendPasswordResetOtpAsync(string email)
@@ -79,6 +82,7 @@ public class CommunicationService : ICommunicationService
     public async Task<CommunicationIndexDto> GetCommunicationIndexAsync(int currentUserId, string currentUserType)
     {
         var users = await _unitOfWork.Users
+            .AsNoTracking()
             .Where(x => !x.Deleted && x.IsActive)
             .OrderBy(x => x.FullName)
             .Select(x => new UserSelectDto
@@ -91,6 +95,7 @@ public class CommunicationService : ICommunicationService
             .ToListAsync();
 
         var emails = await _unitOfWork._db.EmailMessages
+            .AsNoTracking()
             .Where(x => !x.IsDeleted)
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(50)
@@ -107,6 +112,7 @@ public class CommunicationService : ICommunicationService
             .ToListAsync();
 
         var notifications = await _unitOfWork._db.UserNotifications
+            .AsNoTracking()
             .Where(x => !x.IsDeleted)
             .OrderByDescending(x => x.CreatedAtUtc)
             .Take(50)
@@ -243,7 +249,72 @@ public class CommunicationService : ICommunicationService
     public async Task<int> GetUnreadNotificationCountAsync(int userId)
     {
         return await _unitOfWork._db.UserNotificationRecipients
+            .AsNoTracking()
             .CountAsync(x => x.UserAccountId == userId && x.ReadAtUtc == null && x.Notification != null && !x.Notification.IsDeleted);
+    }
+
+    public async Task<List<NotificationMenuItemDto>> GetRecentNotificationsAsync(int userId, int take = 6)
+    {
+        take = Math.Clamp(take, 1, 12);
+        return await _unitOfWork._db.UserNotificationRecipients
+            .AsNoTracking()
+            .Where(x => x.UserAccountId == userId && x.Notification != null && !x.Notification.IsDeleted)
+            .OrderByDescending(x => x.Notification!.CreatedAtUtc)
+            .Take(take)
+            .Select(x => new NotificationMenuItemDto
+            {
+                NotificationId = x.UserNotificationId,
+                Title = x.Notification!.Title,
+                Message = x.Notification.Message,
+                SentBy = x.Notification.CreatedByEmail,
+                SentAtUtc = x.Notification.CreatedAtUtc,
+                IsRead = x.ReadAtUtc != null
+            })
+            .ToListAsync();
+    }
+
+    public async Task CreateAuditNotificationAsync(string title, string message, int actorUserId, string actorEmail, IReadOnlyCollection<int>? recipientUserIds = null)
+    {
+        var recipientsQuery = _unitOfWork.Users
+            .AsNoTracking()
+            .Where(x => !x.Deleted && x.IsActive);
+
+        if (recipientUserIds is { Count: > 0 })
+            recipientsQuery = recipientsQuery.Where(x => recipientUserIds.Contains(x.UserAccountId));
+
+        var recipients = await recipientsQuery
+            .Select(x => x.UserAccountId)
+            .ToListAsync();
+
+        if (recipients.Count == 0)
+        {
+            _logger.LogWarning("ChangeType=EntityChange NotificationSkipped=True Reason=NoRecipients Actor={ActorEmail} Title={Title}", actorEmail, title);
+            return;
+        }
+
+        var notification = new UserNotification
+        {
+            Title = title,
+            Message = message,
+            CompanyName = "Crime Analysis",
+            SendToAll = recipientUserIds == null || recipientUserIds.Count == 0,
+            CreatedByUserId = actorUserId,
+            CreatedByEmail = string.IsNullOrWhiteSpace(actorEmail) ? "system" : actorEmail,
+            CreatedAtUtc = DateTime.UtcNow,
+            Recipients = recipients.Select(id => new UserNotificationRecipient
+            {
+                UserAccountId = id
+            }).ToList()
+        };
+
+        _unitOfWork._db.UserNotifications.Add(notification);
+        await _unitOfWork.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "ChangeType=EntityChange NotificationCreated=True Actor={ActorEmail} RecipientCount={RecipientCount} Title={Title}",
+            actorEmail,
+            recipients.Count,
+            title);
     }
 
     private async Task<PasswordResetOtp?> GetValidOtp(string email, string code)
@@ -261,7 +332,7 @@ public class CommunicationService : ICommunicationService
 
     private async Task<List<ApplicationUser>> ResolveRecipients(bool sendToAll, List<int> selectedIds)
     {
-        var query = _unitOfWork.Users.Where(x => !x.Deleted && x.IsActive);
+        var query = _unitOfWork.Users.AsNoTracking().Where(x => !x.Deleted && x.IsActive);
         if (!sendToAll)
             query = query.Where(x => selectedIds.Contains(x.UserAccountId));
         return await query.OrderBy(x => x.Email).ToListAsync();

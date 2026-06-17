@@ -91,6 +91,7 @@ public class CommunicationController : Controller
     {
         var userId = CurrentUserId();
         var notifications = await _db.UserNotificationRecipients
+            .AsNoTracking()
             .Where(x => x.UserAccountId == userId && x.Notification != null && !x.Notification.IsDeleted)
             .OrderByDescending(x => x.Notification!.CreatedAtUtc)
             .Select(x => new NotificationInboxItem
@@ -132,6 +133,14 @@ public class CommunicationController : Controller
     public async Task<IActionResult> NotificationCount()
     {
         return Json(new { count = await _communicationService.GetUnreadNotificationCountAsync(CurrentUserId()) });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> NotificationMenu()
+    {
+        var items = await _communicationService.GetRecentNotificationsAsync(CurrentUserId(), 6);
+        var unread = await _communicationService.GetUnreadNotificationCountAsync(CurrentUserId());
+        return Json(new { unread, items });
     }
 
     private int CurrentUserId()

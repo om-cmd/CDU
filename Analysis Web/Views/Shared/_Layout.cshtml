@@ -13,6 +13,78 @@
 
     <!-- Material Dashboard CSS -->
     <link href="~/assets/css/material-dashboard.min.css" rel="stylesheet" />
+    <style>
+        .notification-menu {
+            width: 340px;
+            max-height: 420px;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .notification-menu-head {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid #eef2f7;
+            font-weight: 700;
+            color: #172033;
+        }
+
+        .notification-menu-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .notification-menu-item {
+            display: block;
+            padding: .75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #172033;
+            white-space: normal;
+        }
+
+        .notification-menu-item:hover {
+            background: #f8fafc;
+            text-decoration: none;
+        }
+
+        .notification-menu-item.unread {
+            background: #eff6ff;
+        }
+
+        .notification-menu-title {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+        .notification-menu-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #2563eb;
+            flex: 0 0 auto;
+        }
+
+        .notification-menu-message {
+            margin-top: .25rem;
+            color: #64748b;
+            font-size: .78rem;
+            line-height: 1.35;
+        }
+
+        .notification-menu-meta {
+            margin-top: .3rem;
+            color: #94a3b8;
+            font-size: .72rem;
+        }
+
+        .notification-empty {
+            padding: 1rem;
+            color: #64748b;
+            font-size: .85rem;
+        }
+    </style>
 
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -135,11 +207,19 @@
                                 </a>
                             </li>
                             <li class="nav-item dropdown">
-                                <a class="nav-link" asp-controller="Communication" asp-action="Notifications" id="navbarDropdownMenuLink">
+                                <a class="nav-link" href="javascript:;" id="navbarDropdownMenuLink"
+                                   data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                     <i class="material-icons">notifications</i>
                                     <span class="notification" id="notificationBadge" style="display:none;">0</span>
                                     <p class="d-lg-none d-md-block">Notifications</p>
                                 </a>
+                                <div class="dropdown-menu dropdown-menu-right notification-menu" aria-labelledby="navbarDropdownMenuLink">
+                                    <div class="notification-menu-head">Notifications</div>
+                                    <div id="notificationMenuList" class="notification-menu-list">
+                                        <div class="notification-empty">Loading notifications...</div>
+                                    </div>
+                                    <a class="dropdown-item text-center" asp-controller="Communication" asp-action="Notifications">View all notifications</a>
+                                </div>
                             </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link" href="javascript:;" id="navbarDropdownProfile"
@@ -148,10 +228,10 @@
                                     <p class="d-lg-none d-md-block">Account</p>
                                 </a>
                                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownProfile">
-                                    <a class="dropdown-item" href="#">Profile</a>
-                                    <a class="dropdown-item" href="#">Settings</a>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Profile">Profile</a>
+                                    <a class="dropdown-item" asp-controller="Home" asp-action="Privacy">Settings</a>
                                     <div class="dropdown-divider"></div>
-                                    <a class="dropdown-item" href="/Authentication/Logout">Log out</a>
+                                    <a class="dropdown-item" asp-controller="Authentication" asp-action="LogOut">Log out</a>
                                 </div>
                             </li>
                         </ul>
@@ -196,16 +276,75 @@
     <script src="~/assets/js/material-dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        fetch('@Url.Action("NotificationCount", "Communication")')
-            .then(r => r.ok ? r.json() : { count: 0 })
-            .then(data => {
-                const badge = document.getElementById('notificationBadge');
-                if (badge && data.count > 0) {
-                    badge.textContent = data.count;
-                    badge.style.display = '';
-                }
-            })
-            .catch(() => {});
+        const notificationMenuUrl = '@Url.Action("NotificationMenu", "Communication")';
+        const notificationDetailsBase = '@Url.Action("NotificationDetails", "Communication")';
+
+        function escapeNotificationHtml(value) {
+            return String(value ?? '').replace(/[&<>"]/g, ch => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;'
+            }[ch]));
+        }
+
+        function truncateNotificationText(value, max) {
+            const text = String(value ?? '');
+            return text.length > max ? `${text.slice(0, max)}...` : text;
+        }
+
+        function formatNotificationDate(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? '' : date.toLocaleString();
+        }
+
+        function renderNotificationMenu(data) {
+            const badge = document.getElementById('notificationBadge');
+            const list = document.getElementById('notificationMenuList');
+            const unread = Number(data.unread || 0);
+
+            if (badge) {
+                badge.textContent = unread;
+                badge.style.display = unread > 0 ? '' : 'none';
+            }
+
+            if (!list) return;
+            const items = data.items || [];
+
+            if (!items.length) {
+                list.innerHTML = '<div class="notification-empty">No notifications yet.</div>';
+                return;
+            }
+
+            list.innerHTML = items.map(item => {
+                const title = escapeNotificationHtml(item.title || 'Notification');
+                const message = escapeNotificationHtml(truncateNotificationText(item.message || '', 110));
+                const sentBy = escapeNotificationHtml(item.sentBy || 'system');
+                const sentAt = escapeNotificationHtml(formatNotificationDate(item.sentAtUtc));
+                const unreadClass = item.isRead ? '' : ' unread';
+                const dot = item.isRead ? '' : '<span class="notification-menu-dot"></span>';
+                const id = Number(item.notificationId || 0);
+
+                return `
+                    <a class="notification-menu-item${unreadClass}" href="${notificationDetailsBase}/${id}">
+                        <span class="notification-menu-title">${dot}${title}</span>
+                        <span class="notification-menu-message">${message}</span>
+                        <span class="notification-menu-meta">From ${sentBy}${sentAt ? ' - ' + sentAt : ''}</span>
+                    </a>`;
+            }).join('');
+        }
+
+        function loadNotificationMenu() {
+            fetch(`${notificationMenuUrl}?_=${Date.now()}`, { cache: 'no-store' })
+                .then(r => r.ok ? r.json() : { unread: 0, items: [] })
+                .then(renderNotificationMenu)
+                .catch(() => renderNotificationMenu({ unread: 0, items: [] }));
+        }
+
+        loadNotificationMenu();
+        setInterval(loadNotificationMenu, 60000);
+        document.getElementById('navbarDropdownMenuLink')?.addEventListener('click', loadNotificationMenu);
     </script>
     @await RenderSectionAsync("Scripts", required: false)
 

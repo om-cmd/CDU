@@ -11,6 +11,8 @@
     var incidentTrend = monthLabels.Select(label => Model.MonthlyCounts.TryGetValue(label, out var count) ? count : 0).ToList();
     var mapPoints = JsonSerializer.Serialize(Model.MapPoints);
     var hourlyHarm = JsonSerializer.Serialize(Model.HourlyHarmPct.Select(x => Math.Round(x, 1)));
+    var topHarmLocation = Model.HarmByNeighborhood.FirstOrDefault();
+    var topHarmShare = Model.TotalHarm > 0 && topHarmLocation != null ? (double)topHarmLocation.TotalHarm / Model.TotalHarm * 100 : 0;
 }
 
 @section Styles {
@@ -60,9 +62,9 @@
 
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 10px;
-            margin-bottom: 12px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
         }
 
         .kpi-card, .dash-card, .info-card {
@@ -78,6 +80,7 @@
             display: flex;
             gap: 14px;
             align-items: center;
+            min-width: 0;
         }
 
         .kpi-icon {
@@ -99,14 +102,17 @@
             font-size: 11px;
             font-weight: 900;
             line-height: 1.35;
+            overflow-wrap: anywhere;
         }
 
         .kpi-value {
             display: block;
             margin-top: 6px;
-            font-size: 27px;
+            font-size: clamp(19px, 2vw, 27px);
             font-weight: 900;
             color: #111827;
+            line-height: 1.1;
+            overflow-wrap: anywhere;
         }
 
         .kpi-change {
@@ -115,12 +121,14 @@
             color: #087a2d;
             font-size: 12px;
             font-weight: 800;
+            line-height: 1.25;
         }
 
         .info-card {
             min-height: 116px;
             padding: 16px 18px;
             background: linear-gradient(135deg, #f7fbf7, #eef7ee);
+            min-width: 0;
         }
 
         .info-card h3 {
@@ -142,13 +150,15 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: 1.05fr .95fr .85fr 1.15fr;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 12px;
+            align-items: start;
         }
 
         .dash-card {
             padding: 14px;
             min-width: 0;
+            overflow: hidden;
         }
 
         .span-2 { grid-column: span 2; }
@@ -161,12 +171,12 @@
         }
 
         .chart-box {
-            height: 230px;
+            height: 250px;
             position: relative;
         }
 
         .map-box {
-            height: 190px;
+            height: 250px;
             border-radius: 7px;
             overflow: hidden;
             border: 1px solid var(--line);
@@ -192,6 +202,7 @@
         .case-table {
             width: 100%;
             font-size: 12px;
+            table-layout: fixed;
         }
 
         .case-table th {
@@ -204,6 +215,7 @@
         .case-table td, .case-table th {
             padding: 8px 7px;
             border-bottom: 1px solid #eef2f7;
+            overflow-wrap: anywhere;
         }
 
         .severity-pill {
@@ -237,6 +249,7 @@
         @@media (max-width: 1200px) {
             .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .dashboard-grid { grid-template-columns: 1fr 1fr; }
+            .span-2 { grid-column: span 2; }
         }
 
         @@media (max-width: 760px) {
@@ -270,16 +283,16 @@
             <div><span class="kpi-label">Total Crime Harm</span><strong class="kpi-value">@Model.TotalHarm.ToString("N0")</strong><span class="kpi-change">CSS days equivalent</span></div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon"><i class="material-icons">folder_open</i></div>
-            <div><span class="kpi-label">Harm-Weighted Open Cases</span><strong class="kpi-value">@Math.Round(Model.TotalHarm * .049).ToString("N0")</strong><span class="kpi-change">estimated from active harm</span></div>
+            <div class="kpi-icon"><i class="material-icons">warning</i></div>
+            <div><span class="kpi-label">High Harm Incidents</span><strong class="kpi-value">@Model.HighHarmIncidentCount.ToString("N0")</strong><span class="kpi-change">CSS weight 300+</span></div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon"><i class="material-icons">shield</i></div>
-            <div><span class="kpi-label">Harm Clearance Rate</span><strong class="kpi-value">68%</strong><span class="kpi-change">weighted benchmark</span></div>
+            <div class="kpi-icon"><i class="material-icons">place</i></div>
+            <div><span class="kpi-label">Top Harm Area Share</span><strong class="kpi-value">@topHarmShare.ToString("0.0")%</strong><span class="kpi-change">@(topHarmLocation?.Name ?? "Not available")</span></div>
         </div>
         <div class="kpi-card">
-            <div class="kpi-icon"><i class="material-icons">timer</i></div>
-            <div><span class="kpi-label">Avg Harm Response Time</span><strong class="kpi-value">9.7 min</strong><span class="kpi-change">priority response view</span></div>
+            <div class="kpi-icon"><i class="material-icons">event</i></div>
+            <div><span class="kpi-label">Latest SQL Report</span><strong class="kpi-value">@Model.LatestReportDate</strong><span class="kpi-change">from DateOfReport</span></div>
         </div>
         <div class="info-card">
             <h3><i class="material-icons">info</i> About this view</h3>

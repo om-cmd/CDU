@@ -84,6 +84,55 @@ BEGIN
     CREATE INDEX [IX_UserNotificationRecipients_UserAccountId_ReadAtUtc]
         ON [UserNotificationRecipients]([UserAccountId], [ReadAtUtc]);
 END
+
+IF OBJECT_ID(N'[CrimeReports]', N'U') IS NOT NULL
+BEGIN
+    UPDATE [CrimeReports]
+    SET
+        [ReportYear] = COALESCE([ReportYear], YEAR([DateOfReport])),
+        [ReportMonth] = COALESCE([ReportMonth], MONTH([DateOfReport])),
+        [ReportDayOfWeek] = COALESCE([ReportDayOfWeek], DATEPART(WEEKDAY, [DateOfReport]) - 1),
+        [CrimeHour] = COALESCE([CrimeHour], DATEPART(HOUR, [CrimeDateTime]))
+    WHERE ([DateOfReport] IS NOT NULL AND ([ReportYear] IS NULL OR [ReportMonth] IS NULL OR [ReportDayOfWeek] IS NULL))
+       OR ([CrimeDateTime] IS NOT NULL AND [CrimeHour] IS NULL);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_DateOfReport' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_DateOfReport]
+            ON [CrimeReports]([DateOfReport] DESC)
+            INCLUDE([CrimeType], [Neighborhood], [ReportingArea]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_FileNumber' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_FileNumber]
+            ON [CrimeReports]([FileNumber]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_ReportYear_ReportMonth' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_ReportYear_ReportMonth]
+            ON [CrimeReports]([ReportYear], [ReportMonth])
+            INCLUDE([CrimeType]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_CrimeHour' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_CrimeHour]
+            ON [CrimeReports]([CrimeHour])
+            INCLUDE([CrimeType]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_Neighborhood_CrimeType' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_Neighborhood_CrimeType]
+            ON [CrimeReports]([Neighborhood], [CrimeType]);
+END
+
+IF OBJECT_ID(N'[UserNotifications]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_UserNotifications_CreatedAtUtc_IsDeleted' AND object_id = OBJECT_ID(N'[UserNotifications]'))
+        CREATE INDEX [IX_UserNotifications_CreatedAtUtc_IsDeleted]
+            ON [UserNotifications]([CreatedAtUtc] DESC, [IsDeleted]);
+END
+
+IF OBJECT_ID(N'[UserNotificationRecipients]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_UserNotificationRecipients_UserAccountId_NotificationId_ReadAtUtc' AND object_id = OBJECT_ID(N'[UserNotificationRecipients]'))
+        CREATE INDEX [IX_UserNotificationRecipients_UserAccountId_NotificationId_ReadAtUtc]
+            ON [UserNotificationRecipients]([UserAccountId], [UserNotificationId], [ReadAtUtc]);
+END
 """);
     }
 }

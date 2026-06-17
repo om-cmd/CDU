@@ -19,7 +19,7 @@ builder.Configuration.SetStaticConfiguration();
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.CommandTimeout(120) 
+        sqlOptions => sqlOptions.CommandTimeout(300) 
     ));
 
 DefaultConfiguration.SetConnectionString(

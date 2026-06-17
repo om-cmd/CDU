@@ -16,23 +16,33 @@ namespace Analysis_Web.Services
 
         public async Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(int page, int pageSize,string? search, CrimeType? crimeType, int? year, string? neighborhood,string? sortBy, bool ascending)
         {
-            var q = _context.CrimeReports.AsQueryable();
+            page = Math.Max(page, 1);
+            pageSize = Math.Clamp(pageSize, 1, 250000);
+
+            var q = _context.CrimeReports.AsNoTracking();
 
             if (!string.IsNullOrWhiteSpace(search))
             {
-                var sv = search.ToLower();
+                var searchText = search.Trim();
+                var sv = $"%{searchText}%";
+                var matchingCrimeTypes = Enum.GetValues<CrimeType>()
+                    .Where(x => x.ToString().Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
                 q = q.Where(r =>
-                    (r.FileNumber != null && r.FileNumber.ToLower().Contains(sv)) ||
-                    (r.Neighborhood != null && r.Neighborhood.ToLower().Contains(sv)) ||
-                    (r.Location != null && r.Location.ToLower().Contains(sv)) ||
-                    (r.ReportingArea != null && r.ReportingArea.ToLower().Contains(sv)) ||
-                    r.CrimeType.ToString().ToLower().Contains(sv));
+                    (r.FileNumber != null && EF.Functions.Like(r.FileNumber, sv)) ||
+                    (r.Neighborhood != null && EF.Functions.Like(r.Neighborhood, sv)) ||
+                    (r.Location != null && EF.Functions.Like(r.Location, sv)) ||
+                    (r.ReportingArea != null && EF.Functions.Like(r.ReportingArea, sv)) ||
+                    matchingCrimeTypes.Contains(r.CrimeType));
             }
 
             if (crimeType.HasValue) q = q.Where(r => r.CrimeType == crimeType.Value);
             if (year.HasValue) q = q.Where(r => r.ReportYear == year.Value);
             if (!string.IsNullOrWhiteSpace(neighborhood))
-                q = q.Where(r => r.Neighborhood != null && r.Neighborhood.ToLower().Contains(neighborhood.ToLower()));
+            {
+                var nv = $"%{neighborhood.Trim()}%";
+                q = q.Where(r => r.Neighborhood != null && EF.Functions.Like(r.Neighborhood, nv));
+            }
 
             var total = await q.CountAsync();
 
@@ -127,23 +137,31 @@ namespace Analysis_Web.Services
         public async Task<CrimeReportStats> GetStatsAsync()
         {
             var now = DateTime.UtcNow;
-            var reports = await _context.CrimeReports.ToListAsync();
 
             return new CrimeReportStats
             {
-                TotalReports = reports.Count,
-                ReportsThisYear = reports.Count(r => r.ReportYear == now.Year),
-                ReportsThisMonth = reports.Count(r => r.ReportYear == now.Year && r.ReportMonth == now.Month),
-                ByType = reports.GroupBy(r => r.CrimeType.ToString())
-                                           .ToDictionary(g => g.Key, g => g.Count()),
-                ByNeighborhood = reports.Where(r => r.Neighborhood != null)
-                                           .GroupBy(r => r.Neighborhood!)
-                                           .OrderByDescending(g => g.Count())
-                                           .Take(10)
-                                           .ToDictionary(g => g.Key, g => g.Count()),
-                ByHour = reports.Where(r => r.CrimeHour.HasValue)
-                                           .GroupBy(r => r.CrimeHour!.Value)
-                                           .ToDictionary(g => g.Key, g => g.Count())
+                TotalReports = await _context.CrimeReports.AsNoTracking().CountAsync(),
+                ReportsThisYear = await _context.CrimeReports.AsNoTracking().CountAsync(r => r.ReportYear == now.Year),
+                ReportsThisMonth = await _context.CrimeReports.AsNoTracking().CountAsync(r => r.ReportYear == now.Year && r.ReportMonth == now.Month),
+                ByType = await _context.CrimeReports
+                    .AsNoTracking()
+                    .GroupBy(r => r.CrimeType)
+                    .Select(g => new { CrimeType = g.Key.ToString(), Count = g.Count() })
+                    .ToDictionaryAsync(g => g.CrimeType, g => g.Count),
+                ByNeighborhood = await _context.CrimeReports
+                    .AsNoTracking()
+                    .Where(r => r.Neighborhood != null)
+                    .GroupBy(r => r.Neighborhood!)
+                    .OrderByDescending(g => g.Count())
+                    .Take(10)
+                    .Select(g => new { Neighborhood = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(g => g.Neighborhood, g => g.Count),
+                ByHour = await _context.CrimeReports
+                    .AsNoTracking()
+                    .Where(r => r.CrimeHour.HasValue)
+                    .GroupBy(r => r.CrimeHour!.Value)
+                    .Select(g => new { Hour = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(g => g.Hour, g => g.Count)
             };
         }
         public async Task<int> BulkInsertAsync(IEnumerable<CrimeReport> reports)
@@ -168,6 +186,7 @@ namespace Analysis_Web.Services
         public async Task<Dictionary<string, int>> GetFileNumberToIdMapAsync()
         {
             var records = await _context.CrimeReports
+                .AsNoTracking()
                 .Select(f => new { f.FileNumber, f.CrimeReportId })
                 .ToListAsync();
 
@@ -179,7 +198,7 @@ namespace Analysis_Web.Services
 
         public async Task<int> GetTotalCountAsync()
         {
-            return await _context.CrimeReports.CountAsync();
+            return await _context.CrimeReports.AsNoTracking().CountAsync();
         }
     }
 }

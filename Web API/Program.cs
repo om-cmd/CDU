@@ -12,7 +12,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<AnalysisDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.CommandTimeout(120)));
+        sqlOptions => sqlOptions.CommandTimeout(300)));
 
 builder.Services.AddService();
 builder.Services.AddHttpClient("CrimeAnalysisPython", client =>

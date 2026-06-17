@@ -4,6 +4,7 @@ using Core_Layer.HelperMethod;
 using Domain_Layer.DbModels;
 using Domain_Layer.DbModels.Enum;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Text;
 
 namespace Analysis_Web.Controllers
@@ -11,12 +12,17 @@ namespace Analysis_Web.Controllers
     public class CrimeReportController : Controller
     {
         private readonly ICrimeReportInterface _service;
+        private readonly ICommunicationService _communicationService;
         private readonly ILogger<CrimeReportController> _logger;
         private const int DefaultPageSize = 20;
 
-        public CrimeReportController(ICrimeReportInterface service, ILogger<CrimeReportController> logger)
+        public CrimeReportController(
+            ICrimeReportInterface service,
+            ICommunicationService communicationService,
+            ILogger<CrimeReportController> logger)
         {
             _service = service;
+            _communicationService = communicationService;
             _logger = logger;
         }
 
@@ -48,6 +54,10 @@ namespace Analysis_Web.Controllers
             try
             {
                 var created = await _service.CreateAsync(MapFromVm(vm));
+                await NotifyCrimeReportChangedAsync(
+                    "Crime report created",
+                    $"{CurrentDisplayName()} created report {created.FileNumber} ({created.CrimeType}) in {created.Neighborhood ?? "Unknown area"}.",
+                    created.CrimeReportId);
                 return Ok(MapToVm(created));
             }
             catch (Exception ex)
@@ -74,10 +84,16 @@ namespace Analysis_Web.Controllers
 
             try
             {
+                var before = await _service.GetByIdAsync(id);
                 var updated = await _service.UpdateAsync(id, MapFromVm(vm));
                 if (updated == null)
                     return NotFound(new { message = "Report not found — it may have been deleted." });
 
+                var changes = DescribeChanges(before, updated);
+                await NotifyCrimeReportChangedAsync(
+                    "Crime report updated",
+                    $"{CurrentDisplayName()} updated report {updated.FileNumber}. Changes: {changes}.",
+                    updated.CrimeReportId);
                 return Ok(MapToVm(updated));
             }
             catch (Exception ex)
@@ -90,10 +106,15 @@ namespace Analysis_Web.Controllers
         [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            var existing = await _service.GetByIdAsync(id);
             var deleted = await _service.DeleteAsync(id);
             if (!deleted)
                 return NotFound(new { message = $"Crime report #{id} was not found." });
 
+            await NotifyCrimeReportChangedAsync(
+                "Crime report deleted",
+                $"{CurrentDisplayName()} deleted report {existing?.FileNumber ?? id.ToString()} ({existing?.CrimeType.ToString() ?? "Unknown"}).",
+                id);
             return Ok(new { message = "Deleted successfully." });
         }
 
@@ -202,6 +223,20 @@ namespace Analysis_Web.Controllers
                     inserted += await _service.BulkInsertAsync(batch);
                 }
 
+                if (inserted > 0 || skipped > 0 || errors > 0)
+                {
+                    var message = $"{CurrentDisplayName()} imported CSV data. Inserted: {inserted}, skipped: {skipped}, errors: {errors}, total rows: {lines.Count - 1}.";
+                    _logger.LogInformation(
+                        "ChangeType=BulkImport Entity=CrimeReport Actor={ActorEmail} Inserted={Inserted} Skipped={Skipped} Errors={Errors} Total={Total}",
+                        CurrentEmail(),
+                        inserted,
+                        skipped,
+                        errors,
+                        lines.Count - 1);
+
+                    await _communicationService.CreateAuditNotificationAsync("Crime reports CSV imported", message, CurrentUserId(), CurrentEmail());
+                }
+
                 return Ok(new
                 {
                     inserted,
@@ -256,6 +291,50 @@ namespace Analysis_Web.Controllers
             ImportedAt = r.ImportedAt,
             RowStamp = r.RowStamp,
         };
+
+        private async Task NotifyCrimeReportChangedAsync(string title, string message, int reportId)
+        {
+            _logger.LogInformation(
+                "ChangeType=EntityChange Entity=CrimeReport EntityId={EntityId} Actor={ActorEmail} Title={Title} Message={Message}",
+                reportId,
+                CurrentEmail(),
+                title,
+                message);
+
+            await _communicationService.CreateAuditNotificationAsync(title, message, CurrentUserId(), CurrentEmail());
+        }
+
+        private int CurrentUserId()
+            => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
+
+        private string CurrentEmail()
+            => User.FindFirstValue(ClaimTypes.Actor) ?? "system";
+
+        private string CurrentDisplayName()
+            => User.FindFirstValue(ClaimTypes.Name) ?? CurrentEmail();
+
+        private static string DescribeChanges(CrimeReport? before, CrimeReport after)
+        {
+            if (before == null) return "record values updated";
+
+            var changes = new List<string>();
+            AddChange(changes, "File #", before.FileNumber, after.FileNumber);
+            AddChange(changes, "Crime Type", before.CrimeType.ToString(), after.CrimeType.ToString());
+            AddChange(changes, "Neighborhood", before.Neighborhood, after.Neighborhood);
+            AddChange(changes, "Location", before.Location, after.Location);
+            AddChange(changes, "Report Date", before.DateOfReport?.ToString("yyyy-MM-dd HH:mm"), after.DateOfReport?.ToString("yyyy-MM-dd HH:mm"));
+            AddChange(changes, "Crime Date", before.CrimeDateTime?.ToString("yyyy-MM-dd HH:mm"), after.CrimeDateTime?.ToString("yyyy-MM-dd HH:mm"));
+
+            return changes.Count == 0 ? "no visible field changes" : string.Join("; ", changes.Take(6));
+        }
+
+        private static void AddChange(List<string> changes, string label, string? before, string? after)
+        {
+            before ??= "";
+            after ??= "";
+            if (!string.Equals(before, after, StringComparison.Ordinal))
+                changes.Add($"{label}: '{before}' to '{after}'");
+        }
 
         private static CrimeReport MapFromVm(CrimeReportViewModel vm) => new()
         {

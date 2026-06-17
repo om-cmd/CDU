@@ -15,4 +15,6 @@ public interface ICommunicationService
     Task<(bool Success, string Message)> DeleteEmailAsync(long id);
     Task<(bool Success, string Message)> DeleteNotificationAsync(long id);
     Task<int> GetUnreadNotificationCountAsync(int userId);
+    Task<List<NotificationMenuItemDto>> GetRecentNotificationsAsync(int userId, int take = 6);
+    Task CreateAuditNotificationAsync(string title, string message, int actorUserId, string actorEmail, IReadOnlyCollection<int>? recipientUserIds = null);
 }

@@ -1,6 +1,8 @@
 ﻿using Domain_Layer.DbModels.Enum;
 using Analysis_Web.Services;
+using Domain_Layer.Database;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 
 namespace Analysis_Web.Controllers
@@ -8,10 +10,12 @@ namespace Analysis_Web.Controllers
     public class CrimeDataController : Controller
     {
         private readonly ICrimeReportInterface _service;
+        private readonly AnalysisDbContext _db;
 
-        public CrimeDataController(ICrimeReportInterface service)
+        public CrimeDataController(ICrimeReportInterface service, AnalysisDbContext db)
         {
             _service = service;
+            _db = db;
         }
 
         public IActionResult Index()
@@ -23,7 +27,11 @@ namespace Analysis_Web.Controllers
         public async Task<IActionResult> LoadData(int draw, int start, int length,
             string? searchValue, string? sortColumn, string? sortDir)
         {
-            length = length > 0 ? length : 25;
+            Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+
+            length = Math.Clamp(length > 0 ? length : 25, 1, 500);
 
             var (reports, filteredCount) = await _service.GetPagedAsync(
                 page: (start / length) + 1,
@@ -37,6 +45,7 @@ namespace Analysis_Web.Controllers
             );
 
             var totalUnfiltered = await _service.GetTotalCountAsync();
+            var connection = _db.Database.GetDbConnection();
 
             var paged = reports.Select(r => new
             {
@@ -57,7 +66,33 @@ namespace Analysis_Web.Controllers
                 draw,
                 recordsTotal = totalUnfiltered,
                 recordsFiltered = filteredCount,
+                source = new
+                {
+                    table = "CrimeReports",
+                    database = connection.Database,
+                    server = connection.DataSource,
+                    countedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    rowCount = totalUnfiltered
+                },
                 data = paged
+            });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SourceInfo()
+        {
+            Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+
+            var connection = _db.Database.GetDbConnection();
+            return Json(new
+            {
+                table = "CrimeReports",
+                database = connection.Database,
+                server = connection.DataSource,
+                rowCount = await _db.CrimeReports.CountAsync(),
+                checkedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             });
         }
 

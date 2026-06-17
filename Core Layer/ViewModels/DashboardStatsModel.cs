@@ -4,6 +4,12 @@
     {
         public int TotalRecords { get; set; }
         public int TotalWithCoords { get; set; }
+        public string LatestReportDate { get; set; } = "Not available";
+        public string TopNeighborhoodName { get; set; } = "Not available";
+        public int TopNeighborhoodCount { get; set; }
+        public int HighHarmIncidentCount { get; set; }
+        public int MediumHarmIncidentCount { get; set; }
+        public int LowHarmIncidentCount { get; set; }
         public Dictionary<string, int> CrimeTypeCounts { get; set; } = new();
         public Dictionary<string, int> NeighborhoodCounts { get; set; } = new();
         public Dictionary<int, int> YearlyCounts { get; set; } = new();

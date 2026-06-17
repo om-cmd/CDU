@@ -135,6 +135,26 @@
                 font-size: 1rem;
             }
 
+        .source-audit {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-left: 4px solid #f97316;
+            margin: 0 2rem 1rem;
+            padding: .75rem 1rem;
+            color: #7c2d12;
+            font-size: .82rem;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: .65rem;
+        }
+
+            .source-audit strong {
+                display: block;
+                color: #111827;
+                font-size: .9rem;
+                word-break: break-word;
+            }
+
         .table-wrap {
             padding: 1.5rem 2rem 3rem;
         }
@@ -688,6 +708,13 @@
     </div>
 </div>
 
+<div class="source-audit">
+    <div>SQL Server<strong id="srcServer">Checking…</strong></div>
+    <div>Database<strong id="srcDatabase">Checking…</strong></div>
+    <div>Table<strong id="srcTable">CrimeReports</strong></div>
+    <div>SQL Row Count<strong id="srcRows">Checking…</strong></div>
+</div>
+
 <!-- DATA TABLE -->
 <div class="table-wrap">
     <table id="crimeTable" class="table table-bordered w-100" style="display:none;">
@@ -794,6 +821,7 @@
         const IMPORT_URL  = '@Url.Action("ImportCsv", "CrimeReport")';
         const EXPORT_URL  = '@Url.Action("ExportCsv", "CrimeData")';
         const LOADDATA_URL= '@Url.Action("LoadData", "CrimeData")';
+        const SOURCE_URL  = '@Url.Action("SourceInfo", "CrimeData")';
         const TOKEN       = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
         let quickDelTarget = null;
@@ -811,6 +839,7 @@
         ajax: {
         url: LOADDATA_URL,
         type: 'GET',
+        cache: false,
         data: function (d) {
         return {
         draw:        d.draw,
@@ -818,12 +847,14 @@
         length:      d.length,
         searchValue: d.search.value,
         sortColumn:  d.columns[d.order[0]?.column]?.data,
-        sortDir:     d.order[0]?.dir
+        sortDir:     d.order[0]?.dir,
+        _:           Date.now()
         };
         },
         dataSrc: function (json) {
         $('#statTotal').text(Number(json.recordsTotal).toLocaleString());
         $('#statFiltered').text(Number(json.recordsFiltered).toLocaleString());
+        updateSourceAudit(json.source);
         hideLoadingOverlay();
         return json.data;
         },
@@ -868,7 +899,24 @@
 
         // Safety timeout — hide overlay even if request takes long
         setTimeout(hideLoadingOverlay, 8000);
+        loadSourceInfo();
         });
+
+        async function loadSourceInfo() {
+        try {
+        const response = await fetch(`${SOURCE_URL}?_=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) return;
+        updateSourceAudit(await response.json());
+        } catch {}
+        }
+
+        function updateSourceAudit(source) {
+        if (!source) return;
+        document.getElementById('srcServer').textContent = source.server || 'Unknown';
+        document.getElementById('srcDatabase').textContent = source.database || 'Unknown';
+        document.getElementById('srcTable').textContent = source.table || 'CrimeReports';
+        document.getElementById('srcRows').textContent = `${Number(source.rowCount || 0).toLocaleString()} rows @@ ${source.countedAt || source.checkedAt || ''}`;
+        }
 
         // ── Delete ───────────────────────────────────────────────────────────
         function openQuickDel(id, fileNum, crimeType, nbr) {

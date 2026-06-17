@@ -15,6 +15,7 @@ namespace Analysis_Web.Controllers;
 public class AnalysisController : Controller
 {
     private const int MaxRowsForPython = 250000;
+    private const int MapPointLimit = 2500;
     private readonly ICrimeReportInterface _crimeReports;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -142,48 +143,70 @@ public class AnalysisController : Controller
     {
         var model = new DashboardStatsModel
         {
-            TotalRecords = await _unitOfWork.CrimeReports.CountAsync(),
-            TotalWithCoords = await _unitOfWork.CrimeReports.CountAsync(r => r.Latitude.HasValue && r.Longitude.HasValue)
+            TotalRecords = await _unitOfWork.CrimeReports.AsNoTracking().CountAsync(),
+            TotalWithCoords = await _unitOfWork.CrimeReports.AsNoTracking().CountAsync(r => r.Latitude.HasValue && r.Longitude.HasValue)
         };
 
+        var latestDate = await _unitOfWork.CrimeReports
+            .AsNoTracking()
+            .Where(r => r.DateOfReport.HasValue)
+            .MaxAsync(r => r.DateOfReport);
+
+        model.LatestReportDate = latestDate?.ToString("yyyy-MM-dd") ?? "Not available";
+
         model.CrimeTypeCounts = await _unitOfWork.CrimeReports
+            .AsNoTracking()
             .GroupBy(r => r.CrimeType)
             .Select(g => new { CrimeType = g.Key.ToString(), Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToDictionaryAsync(k => k.CrimeType, v => v.Count);
 
-        model.NeighborhoodCounts = await _unitOfWork.CrimeReports
+        var neighborhoodCounts = await _unitOfWork.CrimeReports
+            .AsNoTracking()
             .Where(r => r.Neighborhood != null)
             .GroupBy(r => r.Neighborhood!)
             .Select(g => new { Neighborhood = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
-            .ToDictionaryAsync(k => k.Neighborhood, v => v.Count);
+            .Take(25)
+            .ToListAsync();
+
+        model.NeighborhoodCounts = neighborhoodCounts.ToDictionary(k => k.Neighborhood, v => v.Count);
+        var topNeighborhood = neighborhoodCounts.FirstOrDefault();
+        if (topNeighborhood != null)
+        {
+            model.TopNeighborhoodName = topNeighborhood.Neighborhood;
+            model.TopNeighborhoodCount = topNeighborhood.Count;
+        }
 
         model.YearlyCounts = await _unitOfWork.CrimeReports
-            .Where(r => r.DateOfReport.HasValue)
-            .GroupBy(r => r.DateOfReport!.Value.Year)
+            .AsNoTracking()
+            .Where(r => r.ReportYear.HasValue)
+            .GroupBy(r => r.ReportYear!.Value)
             .Select(g => new { Year = g.Key, Count = g.Count() })
             .OrderBy(x => x.Year)
             .ToDictionaryAsync(k => k.Year, v => v.Count);
 
         model.MonthlyCounts = await _unitOfWork.CrimeReports
-            .Where(r => r.DateOfReport.HasValue)
-            .GroupBy(r => new { r.DateOfReport!.Value.Year, r.DateOfReport!.Value.Month })
+            .AsNoTracking()
+            .Where(r => r.ReportYear.HasValue && r.ReportMonth.HasValue)
+            .GroupBy(r => new { Year = r.ReportYear!.Value, Month = r.ReportMonth!.Value })
             .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
             .OrderBy(x => x.Year).ThenBy(x => x.Month)
             .ToDictionaryAsync(k => $"{k.Year}-{k.Month:00}", v => v.Count);
 
         model.HourlyCounts = await _unitOfWork.CrimeReports
-            .Where(r => r.CrimeDateTime.HasValue)
-            .GroupBy(r => r.CrimeDateTime!.Value.Hour)
+            .AsNoTracking()
+            .Where(r => r.CrimeHour.HasValue)
+            .GroupBy(r => r.CrimeHour!.Value)
             .Select(g => new { Hour = g.Key, Count = g.Count() })
             .ToDictionaryAsync(k => k.Hour, v => v.Count);
 
         var mapPointsRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
             .Where(r => r.Latitude.HasValue && r.Longitude.HasValue)
             .OrderByDescending(r => r.DateOfReport)
             .Select(r => new { r.Latitude, r.Longitude, r.CrimeType, r.FileNumber, r.Neighborhood, r.DateOfReport })
-            .Take(5000)
+            .Take(MapPointLimit)
             .ToListAsync();
 
         model.MapPoints = mapPointsRaw.Select(r => new MapPointModel
@@ -198,6 +221,7 @@ public class AnalysisController : Controller
         }).ToList();
 
         var recentRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
             .OrderByDescending(r => r.DateOfReport)
             .Take(8)
             .Select(r => new { r.FileNumber, r.CrimeType, r.Neighborhood, r.Location, r.DateOfReport, r.CrimeDateTime })
@@ -225,58 +249,98 @@ public class AnalysisController : Controller
 
     private async Task AddHarmStatsAsync(DashboardStatsModel model)
     {
-        var harmData = await _unitOfWork.CrimeReports
-            .Select(r => new { r.CrimeType, r.DateOfReport, r.CrimeDateTime, r.Neighborhood })
+        var harmByTypeRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
+            .GroupBy(r => r.CrimeType)
+            .Select(g => new { CrimeType = g.Key, Count = g.Count() })
             .ToListAsync();
 
-        var weighted = harmData.Select(r => new
-        {
-            CrimeType = r.CrimeType.ToString(),
-            Weight = CrimeDataService.GetCssWeight(r.CrimeType.ToString()),
-            Month = r.DateOfReport.HasValue ? $"{r.DateOfReport.Value.Year}-{r.DateOfReport.Value.Month:00}" : null,
-            HourBlock = GetHourBlock(r.CrimeDateTime),
-            Neighborhood = r.Neighborhood ?? "Unknown"
-        }).ToList();
-
-        model.TotalHarm = weighted.Sum(x => x.Weight);
-        model.HarmByType = weighted
-            .GroupBy(x => x.CrimeType)
-            .Select(g => new HarmByTypeModel
+        model.HarmByType = harmByTypeRaw
+            .Select(x =>
             {
-                CrimeType = g.Key,
-                Count = g.Count(),
-                TotalHarm = g.Sum(x => x.Weight),
-                CssWeight = g.First().Weight
+                var crimeType = x.CrimeType.ToString();
+                var weight = CrimeDataService.GetCssWeight(crimeType);
+                return new HarmByTypeModel
+                {
+                    CrimeType = crimeType,
+                    Count = x.Count,
+                    TotalHarm = (long)x.Count * weight,
+                    CssWeight = weight
+                };
             })
             .OrderByDescending(x => x.TotalHarm)
             .ToList();
+        model.TotalHarm = model.HarmByType.Sum(x => x.TotalHarm);
 
-        model.MonthlyHarm = weighted
-            .Where(x => x.Month != null)
-            .GroupBy(x => x.Month!)
-            .OrderBy(g => g.Key)
-            .ToDictionary(g => g.Key, g => g.Sum(x => (long)x.Weight));
+        var monthlyHarmRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
+            .Where(r => r.ReportYear.HasValue && r.ReportMonth.HasValue)
+            .GroupBy(r => new { Year = r.ReportYear!.Value, Month = r.ReportMonth!.Value, r.CrimeType })
+            .Select(g => new { g.Key.Year, g.Key.Month, g.Key.CrimeType, Count = g.Count() })
+            .OrderBy(x => x.Year).ThenBy(x => x.Month)
+            .ToListAsync();
 
-        model.HighHarm = weighted.Where(x => x.Weight >= 300).Sum(x => x.Weight);
-        model.MediumHarm = weighted.Where(x => x.Weight >= 60 && x.Weight < 300).Sum(x => x.Weight);
-        model.LowHarm = weighted.Where(x => x.Weight < 60).Sum(x => x.Weight);
+        model.MonthlyHarm = monthlyHarmRaw
+            .GroupBy(x => $"{x.Year}-{x.Month:00}")
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(x => (long)x.Count * CrimeDataService.GetCssWeight(x.CrimeType.ToString())));
+
+        var severityCounts = model.HarmByType
+            .Select(x => new { x.Count, Total = x.TotalHarm, x.CssWeight })
+            .ToList();
+
+        model.HighHarmIncidentCount = severityCounts.Where(x => x.CssWeight >= 300).Sum(x => x.Count);
+        model.MediumHarmIncidentCount = severityCounts.Where(x => x.CssWeight >= 60 && x.CssWeight < 300).Sum(x => x.Count);
+        model.LowHarmIncidentCount = severityCounts.Where(x => x.CssWeight < 60).Sum(x => x.Count);
+        model.HighHarm = severityCounts.Where(x => x.CssWeight >= 300).Sum(x => x.Total);
+        model.MediumHarm = severityCounts.Where(x => x.CssWeight >= 60 && x.CssWeight < 300).Sum(x => x.Total);
+        model.LowHarm = severityCounts.Where(x => x.CssWeight < 60).Sum(x => x.Total);
+
+        var hourlyHarmRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
+            .Where(r => r.CrimeHour.HasValue)
+            .GroupBy(r => new { r.CrimeHour, r.CrimeType })
+            .Select(g => new { Hour = g.Key.CrimeHour!.Value, g.Key.CrimeType, Count = g.Count() })
+            .ToListAsync();
 
         for (var block = 0; block < 4; block++)
         {
-            var blockSum = weighted.Where(x => x.HourBlock == block).Sum(x => x.Weight);
+            var blockSum = hourlyHarmRaw
+                .Where(x => GetHourBlock(x.Hour) == block)
+                .Sum(x => (long)x.Count * CrimeDataService.GetCssWeight(x.CrimeType.ToString()));
             model.HourlyHarmPct[block] = model.TotalHarm > 0 ? (double)blockSum / model.TotalHarm * 100 : 0;
         }
 
-        model.HarmByNeighborhood = weighted
+        var harmByNeighborhoodRaw = await _unitOfWork.CrimeReports
+            .AsNoTracking()
+            .Where(r => r.Neighborhood != null)
+            .GroupBy(r => new { r.Neighborhood, r.CrimeType })
+            .Select(g => new { Neighborhood = g.Key.Neighborhood!, g.Key.CrimeType, Count = g.Count() })
+            .ToListAsync();
+
+        model.HarmByNeighborhood = harmByNeighborhoodRaw
             .GroupBy(x => x.Neighborhood)
-            .Select(g => new HarmByNeighborhoodModel
+            .Select(g =>
             {
-                Name = g.Key,
-                Count = g.Count(),
-                TotalHarm = g.Sum(x => x.Weight)
+                return new HarmByNeighborhoodModel
+                {
+                    Name = g.Key,
+                    Count = g.Sum(x => x.Count),
+                    TotalHarm = g.Sum(x => (long)x.Count * CrimeDataService.GetCssWeight(x.CrimeType.ToString()))
+                };
             })
             .OrderByDescending(x => x.TotalHarm)
+            .Take(25)
             .ToList();
+    }
+
+    private static int GetHourBlock(int hour)
+    {
+        if (hour < 6) return 0;
+        if (hour < 12) return 1;
+        if (hour < 18) return 2;
+        return 3;
     }
 
     private static int GetHourBlock(DateTime? crimeDateTime)
