@@ -7,6 +7,7 @@
         public Dictionary<string, int> CrimeTypeCounts { get; set; } = new();
         public Dictionary<string, int> NeighborhoodCounts { get; set; } = new();
         public Dictionary<int, int> YearlyCounts { get; set; } = new();
+        public Dictionary<string, int> MonthlyCounts { get; set; } = new();
         public Dictionary<int, int> HourlyCounts { get; set; } = new();
 
         public long TotalHarm { get; set; }
@@ -16,6 +17,7 @@
         public List<HarmByNeighborhoodModel> HarmByNeighborhood { get; set; } = new();
 
         public Dictionary<int, long> YearlyHarm { get; set; } = new();
+        public Dictionary<string, long> MonthlyHarm { get; set; } = new();
 
         public double[] HourlyHarmPct { get; set; } = new double[4];
 

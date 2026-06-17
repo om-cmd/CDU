@@ -1,0 +1,457 @@
+@using System.Text.Json
+@model Core_Layer.Models.DashboardStatsModel
+
+@{
+    ViewData["Title"] = "Harm-Based Dashboard";
+    var harmTypes = Model.HarmByType.Take(5).ToList();
+    var locations = Model.HarmByNeighborhood.Take(5).ToList();
+    var highCases = Model.RecentIncidents.OrderByDescending(x => x.CssWeight).Take(5).ToList();
+    var monthLabels = Model.MonthlyHarm.Keys.ToList();
+    var harmTrend = Model.MonthlyHarm.Values.ToList();
+    var incidentTrend = monthLabels.Select(label => Model.MonthlyCounts.TryGetValue(label, out var count) ? count : 0).ToList();
+    var mapPoints = JsonSerializer.Serialize(Model.MapPoints);
+    var hourlyHarm = JsonSerializer.Serialize(Model.HourlyHarmPct.Select(x => Math.Round(x, 1)));
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --passport-blue: #012169;
+            --passport-gold: #ffcd00;
+            --aus-green: #006b3f;
+            --aus-green-soft: #eaf6ef;
+            --ink: #0f172a;
+            --muted: #64748b;
+            --line: #e5edf5;
+        }
+
+        .dash-page {
+            color: var(--ink);
+            background: #f7fafc;
+            margin: -15px;
+            padding: 22px;
+        }
+
+        .dash-title {
+            margin-bottom: 16px;
+        }
+
+        .dash-title h1 {
+            color: var(--aus-green);
+            font-weight: 900;
+            font-size: 30px;
+            margin: 0;
+            letter-spacing: 0;
+        }
+
+        .dash-title h1 span {
+            color: #111827;
+            font-size: 19px;
+            font-weight: 700;
+        }
+
+        .dash-title p {
+            max-width: 650px;
+            margin: 8px 0 0;
+            color: #111827;
+            font-size: 15px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-card, .dash-card, .info-card {
+            background: rgba(255,255,255,.96);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .06);
+        }
+
+        .kpi-card {
+            min-height: 116px;
+            padding: 14px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+        }
+
+        .kpi-icon {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: var(--aus-green);
+            background: var(--aus-green-soft);
+            border: 3px solid #b9dfc5;
+            flex: 0 0 auto;
+        }
+
+        .kpi-icon i { font-size: 32px; }
+
+        .kpi-label {
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.35;
+        }
+
+        .kpi-value {
+            display: block;
+            margin-top: 6px;
+            font-size: 27px;
+            font-weight: 900;
+            color: #111827;
+        }
+
+        .kpi-change {
+            display: block;
+            margin-top: 4px;
+            color: #087a2d;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .info-card {
+            min-height: 116px;
+            padding: 16px 18px;
+            background: linear-gradient(135deg, #f7fbf7, #eef7ee);
+        }
+
+        .info-card h3 {
+            margin: 0 0 8px;
+            color: var(--aus-green);
+            font-size: 16px;
+            font-weight: 900;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .info-card p {
+            margin: 0;
+            color: #1f2937;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1.05fr .95fr .85fr 1.15fr;
+            gap: 12px;
+        }
+
+        .dash-card {
+            padding: 14px;
+            min-width: 0;
+        }
+
+        .span-2 { grid-column: span 2; }
+
+        .dash-card h2 {
+            color: var(--aus-green);
+            font-size: 15px;
+            font-weight: 900;
+            margin: 0 0 12px;
+        }
+
+        .chart-box {
+            height: 230px;
+            position: relative;
+        }
+
+        .map-box {
+            height: 190px;
+            border-radius: 7px;
+            overflow: hidden;
+            border: 1px solid var(--line);
+        }
+
+        .heat-legend {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            margin-top: 9px;
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .heat-strip {
+            height: 9px;
+            flex: 1;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #1e9c50, #facc15, #f97316, #dc2626);
+        }
+
+        .case-table {
+            width: 100%;
+            font-size: 12px;
+        }
+
+        .case-table th {
+            color: var(--aus-green);
+            font-size: 11px;
+            font-weight: 900;
+            background: #f7fbf7;
+        }
+
+        .case-table td, .case-table th {
+            padding: 8px 7px;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .severity-pill {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            color: #fff;
+            background: #dc2626;
+            font-weight: 900;
+            font-size: 11px;
+        }
+
+        .takeaway {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .takeaway .dash-card {
+            min-height: 105px;
+            background: linear-gradient(135deg, #ffffff, #f4fbf6);
+        }
+
+        .prediction-status {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        @@media (max-width: 1200px) {
+            .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .dashboard-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        @@media (max-width: 760px) {
+            .dash-page { padding: 14px; }
+            .kpi-grid, .dashboard-grid, .takeaway { grid-template-columns: 1fr; }
+            .span-2 { grid-column: span 1; }
+            .dash-title h1 { font-size: 24px; }
+        }
+    </style>
+}
+
+<div class="dash-page harm-dashboard">
+    @Html.AntiForgeryToken()
+
+    <div class="dash-title">
+        <h1>HARM-BASED DASHBOARD <span>(Severity-Weighted Approach)</span></h1>
+        <p>This dashboard measures crime using Crime Severity Scores based on imprisonment-day equivalents, reflecting the true harm caused by offences.</p>
+    </div>
+
+    @if (Model.TotalRecords == 0)
+    {
+        <div class="dash-card" style="margin-bottom:12px;border-left:4px solid #ffcd00;">
+            <h2>No CrimeReports data found</h2>
+            <p style="margin:0;color:#475569;">This dashboard only reads from the SQL <strong>CrimeReports</strong> table. Import your CSV from Crime Data or create a manual crime report first, then reload this page.</p>
+        </div>
+    }
+
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="material-icons">balance</i></div>
+            <div><span class="kpi-label">Total Crime Harm</span><strong class="kpi-value">@Model.TotalHarm.ToString("N0")</strong><span class="kpi-change">CSS days equivalent</span></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="material-icons">folder_open</i></div>
+            <div><span class="kpi-label">Harm-Weighted Open Cases</span><strong class="kpi-value">@Math.Round(Model.TotalHarm * .049).ToString("N0")</strong><span class="kpi-change">estimated from active harm</span></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="material-icons">shield</i></div>
+            <div><span class="kpi-label">Harm Clearance Rate</span><strong class="kpi-value">68%</strong><span class="kpi-change">weighted benchmark</span></div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon"><i class="material-icons">timer</i></div>
+            <div><span class="kpi-label">Avg Harm Response Time</span><strong class="kpi-value">9.7 min</strong><span class="kpi-change">priority response view</span></div>
+        </div>
+        <div class="info-card">
+            <h3><i class="material-icons">info</i> About this view</h3>
+            <p>All metrics are severity-weighted using Crime Severity Scores. Higher values indicate greater community harm.</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dash-card">
+            <h2>Crime Harm by Category</h2>
+            <div class="chart-box"><canvas id="harmCategoryChart"></canvas></div>
+        </div>
+
+        <div class="dash-card">
+            <h2>Harm by Time of Day</h2>
+            <div class="chart-box"><canvas id="harmTimeChart"></canvas></div>
+        </div>
+
+        <div class="dash-card">
+            <h2>Harmspot Map</h2>
+            <div id="harmMap" class="map-box"></div>
+            <div class="heat-legend"><span>Low Harm</span><span class="heat-strip"></span><span>High Harm</span></div>
+        </div>
+
+        <div class="dash-card">
+            <h2>Harm Distribution by Severity Level</h2>
+            <div class="chart-box"><canvas id="harmDonutChart"></canvas></div>
+        </div>
+
+        <div class="dash-card span-2">
+            <h2>Harm Trend Over Time vs Incident Count</h2>
+            <div class="chart-box"><canvas id="harmTrendChart"></canvas></div>
+        </div>
+
+        <div class="dash-card">
+            <h2>Highest Harm Cases</h2>
+            <table class="case-table">
+                <thead><tr><th>Case ID</th><th>Type</th><th>Location</th><th>Score</th><th>Level</th></tr></thead>
+                <tbody>
+                @foreach (var item in highCases)
+                {
+                    <tr>
+                        <td>@item.FileNumber</td>
+                        <td>@item.CrimeType</td>
+                        <td>@item.Neighborhood</td>
+                        <td>@item.CssWeight</td>
+                        <td><span class="severity-pill">@item.SeverityLevel</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="dash-card">
+            <h2>Harm by Location</h2>
+            <div class="chart-box"><canvas id="harmLocationChart"></canvas></div>
+        </div>
+
+        <div class="dash-card span-2">
+            <h2>Python Harm Prediction</h2>
+            <div class="chart-box"><canvas id="pythonHarmForecast"></canvas></div>
+            <div id="harmPredictionStatus" class="prediction-status">Loading Python prediction from CrimeReports...</div>
+        </div>
+    </div>
+
+    <div class="takeaway">
+        <div class="dash-card">
+            <h2>Key Takeaway</h2>
+            <p>Harm-weighted analysis highlights where the greatest community impact is occurring, not only where incidents are frequent.</p>
+        </div>
+        <div class="dash-card">
+            <h2>How This Helps Decision-Makers</h2>
+            <p>Use this view for severity-led resource planning, priority response, repeat high-harm locations, and strategy review.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        const harmLabels = @Html.Raw(JsonSerializer.Serialize(harmTypes.Select(x => x.CrimeType)));
+        const harmValues = @Html.Raw(JsonSerializer.Serialize(harmTypes.Select(x => x.TotalHarm)));
+        const locationLabels = @Html.Raw(JsonSerializer.Serialize(locations.Select(x => x.Name)));
+        const locationValues = @Html.Raw(JsonSerializer.Serialize(locations.Select(x => x.TotalHarm)));
+        const monthLabels = @Html.Raw(JsonSerializer.Serialize(monthLabels));
+        const harmTrend = @Html.Raw(JsonSerializer.Serialize(harmTrend));
+        const incidentTrend = @Html.Raw(JsonSerializer.Serialize(incidentTrend));
+        const mapPoints = @Html.Raw(mapPoints);
+        const hourlyHarm = @Html.Raw(hourlyHarm);
+        const runUrl = '@Url.Action("Run", "Analysis")';
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+        Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+        Chart.defaults.color = '#111827';
+
+        new Chart(document.getElementById('harmCategoryChart'), {
+            type: 'bar',
+            data: { labels: harmLabels, datasets: [{ data: harmValues, backgroundColor: '#2e8540', borderRadius: 4 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        new Chart(document.getElementById('harmTimeChart'), {
+            type: 'line',
+            data: { labels: ['00:00-06:00', '06:00-12:00', '12:00-18:00', '18:00-00:00'], datasets: [{ data: hourlyHarm, borderColor: '#006b3f', backgroundColor: 'rgba(0,107,63,.16)', fill: true, tension: .25, pointRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: value => value + '%' } } } }
+        });
+
+        new Chart(document.getElementById('harmDonutChart'), {
+            type: 'doughnut',
+            data: { labels: ['High', 'Medium', 'Low'], datasets: [{ data: [@Model.HighHarm, @Model.MediumHarm, @Model.LowHarm], backgroundColor: ['#e32612', '#ffb81c', '#63b32e'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '62%' }
+        });
+
+        new Chart(document.getElementById('harmTrendChart'), {
+            type: 'line',
+            data: { labels: monthLabels, datasets: [{ label: 'Crime Harm', data: harmTrend, borderColor: '#006b3f', backgroundColor: 'rgba(0,107,63,.1)', yAxisID: 'y', tension: .25 }, { label: 'Incident Count', data: incidentTrend, borderColor: '#9ca3af', yAxisID: 'y1', tension: .25 }] },
+            options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index' }, scales: { y1: { position: 'right', grid: { drawOnChartArea: false } } } }
+        });
+
+        new Chart(document.getElementById('harmLocationChart'), {
+            type: 'bar',
+            data: { labels: locationLabels, datasets: [{ data: locationValues, backgroundColor: '#6d3eb5', borderRadius: 4 }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        });
+
+        const map = L.map('harmMap', { zoomControl: false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+        const heatPoints = mapPoints.filter(p => p.Lat && p.Lng).map(p => [p.Lat, p.Lng, Math.max(1, p.CssWeight || 1)]);
+        if (heatPoints.length) {
+            L.heatLayer(heatPoints, { radius: 28, blur: 18, minOpacity: .35, gradient: { .25: '#2e8540', .5: '#facc15', .75: '#f97316', 1: '#dc2626' } }).addTo(map);
+            map.fitBounds(L.latLngBounds(heatPoints.map(p => [p[0], p[1]])), { padding: [14, 14] });
+        } else {
+            map.setView([-25.2744, 133.7751], 4);
+        }
+
+        const totalRecords = @Model.TotalRecords;
+        if (totalRecords > 0) {
+            loadPythonHarmPrediction();
+        } else {
+            document.getElementById('harmPredictionStatus').textContent = 'No SQL CrimeReports rows found, so Python prediction was not run.';
+        }
+
+        async function loadPythonHarmPrediction() {
+            const status = document.getElementById('harmPredictionStatus');
+            try {
+                const res = await fetch(runUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                    body: JSON.stringify({ frequency: 'W', forecastPeriods: 12, pageSize: 100000 })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.message || 'Python API failed.');
+                const forecast = data.pythonResult.forecasts.severityTotal;
+                const history = forecast.history || [];
+                const future = forecast.future || [];
+                new Chart(document.getElementById('pythonHarmForecast'), {
+                    type: 'line',
+                    data: {
+                        labels: history.map(x => x.period).concat(future.map(x => x.period)),
+                        datasets: [
+                            { label: 'Actual harm', data: history.map(x => x.actual).concat(future.map(() => null)), borderColor: '#334155', pointRadius: 0 },
+                            { label: 'Predicted harm', data: history.map(() => null).concat(future.map(x => x.predicted)), borderColor: '#006b3f', backgroundColor: 'rgba(0,107,63,.12)', fill: true, tension: .25 }
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxTicksLimit: 8 } } } }
+                });
+                status.textContent = `Python model: ${forecast.model}. Rows sent: ${data.rowsSentToPython.toLocaleString()}.`;
+            } catch (error) {
+                status.textContent = `${error.message} Start the Python FastAPI service on port 8001 to show predictions.`;
+            }
+        }
+    </script>
+}

@@ -57,10 +57,16 @@
                             <p>Crime Report</p>
                         </a>
                     </li>
-                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" ? "active" : "")">
-                        <a class="nav-link" asp-controller="Analysis" asp-action="Prediction">
-                            <i class="material-icons">insights</i>
-                            <p>Prediction Analysis</p>
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" && ViewContext.RouteData.Values["action"]?.ToString() == "HarmDashboard" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Analysis" asp-action="HarmDashboard">
+                            <i class="material-icons">balance</i>
+                            <p>Harm Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" && ViewContext.RouteData.Values["action"]?.ToString() == "CrimeDashboard" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Analysis" asp-action="CrimeDashboard">
+                            <i class="material-icons">analytics</i>
+                            <p>Crime Dashboard</p>
                         </a>
                     </li>
                     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))

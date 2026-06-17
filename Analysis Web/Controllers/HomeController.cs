@@ -91,10 +91,6 @@ namespace Analysis_Web.Controllers
 
         private async Task<DashboardStatsModel> GetDashboardStatsFromDb()
         {
-            const string cacheKey = "DashboardStats";
-            if (_cache.TryGetValue(cacheKey, out DashboardStatsModel cached))
-                return cached;
-
             try
             {
                 var model = new DashboardStatsModel();
@@ -171,7 +167,6 @@ namespace Analysis_Web.Controllers
                 // 8. Harm-based stats (requires weights, compute via aggregation)
                 await ComputeHarmStatsOptimized(model);
 
-                _cache.Set(cacheKey, model, TimeSpan.FromMinutes(30));
                 return model;
             }
             catch (Exception ex)
