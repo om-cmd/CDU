@@ -54,8 +54,8 @@ namespace Analysis_Web.Services
                 ("crimetype", false) => q.OrderByDescending(r => r.CrimeType),
                 ("neighborhood", true) => q.OrderBy(r => r.Neighborhood),
                 ("neighborhood", false) => q.OrderByDescending(r => r.Neighborhood),
-                (_, true) => q.OrderBy(r => r.DateOfReport),
-                (_, false) => q.OrderByDescending(r => r.DateOfReport),
+                (_, true) => q.OrderBy(r => r.DateOfReport).ThenBy(r => r.CrimeReportId),
+                (_, false) => q.OrderByDescending(r => r.DateOfReport).ThenByDescending(r => r.CrimeReportId),
             };
 
             var data = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -69,6 +69,8 @@ namespace Analysis_Web.Services
         {
             report.ImportedAt = DateTime.UtcNow;
             report.RowStamp = Guid.NewGuid();
+            report.Jurisdiction = NormalizeSourceValue(report.Jurisdiction);
+            report.DataSource = NormalizeSourceValue(report.DataSource);
 
             // Auto-populate derived date fields
             if (report.DateOfReport.HasValue)
@@ -98,6 +100,8 @@ namespace Analysis_Web.Services
             existing.ReportingArea = report.ReportingArea;
             existing.Neighborhood = report.Neighborhood;
             existing.Location = report.Location;
+            existing.Jurisdiction = NormalizeSourceValue(report.Jurisdiction);
+            existing.DataSource = NormalizeSourceValue(report.DataSource);
             existing.Latitude = report.Latitude;
             existing.Longitude = report.Longitude;
 
@@ -164,13 +168,21 @@ namespace Analysis_Web.Services
                     .ToDictionaryAsync(g => g.Hour, g => g.Count)
             };
         }
-        public async Task<int> BulkInsertAsync(IEnumerable<CrimeReport> reports)
+        public async Task<int> BulkInsertAsync(
+            IEnumerable<CrimeReport> reports,
+            CancellationToken cancellationToken = default)
         {
             var list = reports.ToList();
             if (list.Count == 0) return 0;
 
-            await _context.CrimeReports.AddRangeAsync(list);
-            await _context.SaveChangesAsync();
+            foreach (var report in list)
+            {
+                report.Jurisdiction = NormalizeSourceValue(report.Jurisdiction);
+                report.DataSource = NormalizeSourceValue(report.DataSource);
+            }
+
+            await _context.CrimeReports.AddRangeAsync(list, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             return list.Count;
         }
 
@@ -200,5 +212,8 @@ namespace Analysis_Web.Services
         {
             return await _context.CrimeReports.AsNoTracking().CountAsync();
         }
+
+        private static string NormalizeSourceValue(string? value)
+            => string.IsNullOrWhiteSpace(value) ? "Unspecified" : value.Trim();
     }
 }

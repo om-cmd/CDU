@@ -40,6 +40,13 @@ namespace Analysis_Web.ViewModels
         [Display(Name = "Location")]
         public string? Location { get; set; }
 
+        [MaxLength(100)]
+        public string? Jurisdiction { get; set; }
+
+        [MaxLength(120)]
+        [Display(Name = "Data Source")]
+        public string? DataSource { get; set; }
+
         [Range(-90, 90, ErrorMessage = "Latitude must be between -90 and 90.")]
         [Display(Name = "Latitude")]
         public decimal? Latitude { get; set; }

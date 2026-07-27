@@ -16,7 +16,9 @@ namespace Analysis_Web.Services
         Task<bool> ExistsAsync(int id);
         Task<bool> FileNumberExistsAsync(string fileNumber, int? excludeId = null);
         Task<CrimeReportStats> GetStatsAsync();
-        Task<int> BulkInsertAsync(IEnumerable<CrimeReport> reports);
+        Task<int> BulkInsertAsync(
+            IEnumerable<CrimeReport> reports,
+            CancellationToken cancellationToken = default);
         Task<HashSet<string>> GetAllFileNumbersAsync();
         Task<Dictionary<string, int>> GetFileNumberToIdMapAsync();
         Task<int> GetTotalCountAsync();   

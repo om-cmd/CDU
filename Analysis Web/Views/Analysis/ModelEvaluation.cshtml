@@ -1,0 +1,270 @@
+@{
+    ViewData["Title"] = "Model Evaluation & Accuracy";
+}
+
+@section Styles {
+    <style>
+        :root {
+            --eval-navy: #012169;
+            --eval-blue: #174fe4;
+            --eval-green: #006b3f;
+            --eval-amber: #c96a00;
+            --eval-ink: #0f172a;
+            --eval-muted: #64748b;
+            --eval-line: #dce6f1;
+        }
+
+        .evaluation-page { margin: -15px; padding: 22px; background: #f7fafc; color: var(--eval-ink); }
+        .evaluation-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 14px; }
+        .evaluation-header h1 { margin: 0; color: var(--eval-navy); font-size: 30px; font-weight: 900; }
+        .evaluation-header p { max-width: 790px; margin: 7px 0 0; color: #334155; line-height: 1.5; }
+        .evaluation-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 9px; }
+        .evaluation-badge { flex: 0 0 auto; padding: 7px 11px; border-radius: 999px; background: #e8f1ff; color: var(--eval-navy); font-size: 11px; font-weight: 900; text-transform: uppercase; }
+        .retrain-button { border: 0; border-radius: 7px; padding: 9px 14px; background: var(--eval-blue); color: #fff; font-size: 12px; font-weight: 900; cursor: pointer; box-shadow: 0 5px 14px rgba(23, 79, 228, .2); }
+        .retrain-button:disabled { cursor: wait; opacity: .6; }
+        .evaluation-status { margin-bottom: 14px; padding: 12px 14px; border: 1px solid #cfe0f6; border-left: 4px solid var(--eval-blue); border-radius: 8px; background: #fff; color: #334155; font-size: 13px; }
+        .evaluation-status.error { border-color: #fecaca; border-left-color: #dc2626; background: #fff7f7; color: #991b1b; }
+        .model-section { margin-bottom: 16px; }
+        .section-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 9px; }
+        .section-title h2 { margin: 0; color: var(--eval-navy); font-size: 18px; font-weight: 900; }
+        .section-title span { color: var(--eval-muted); font-size: 12px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+        .metric-card, .evaluation-card { min-width: 0; border: 1px solid var(--eval-line); border-radius: 9px; background: #fff; box-shadow: 0 7px 22px rgba(15, 23, 42, .05); }
+        .metric-card { padding: 13px; }
+        .metric-label { display: block; color: var(--eval-muted); font-size: 10px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+        .metric-value { display: block; margin-top: 6px; color: var(--eval-blue); font-size: clamp(18px, 2vw, 25px); line-height: 1.1; font-weight: 900; overflow-wrap: anywhere; }
+        .metric-value.green { color: var(--eval-green); }
+        .metric-note { display: block; margin-top: 5px; color: #64748b; font-size: 11px; line-height: 1.35; }
+        .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+        .evaluation-card { padding: 14px; }
+        .evaluation-card h3 { margin: 0 0 4px; color: var(--eval-navy); font-size: 14px; font-weight: 900; }
+        .card-subtitle { min-height: 32px; margin: 0 0 8px; color: var(--eval-muted); font-size: 11px; line-height: 1.4; }
+        .chart-box { position: relative; height: 270px; }
+        .wide-card { margin-top: 12px; }
+        .method-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+        .method-list { margin: 8px 0 0; padding-left: 20px; color: #334155; font-size: 12px; line-height: 1.55; }
+        .quality-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+        .quality-item { padding: 9px; border-radius: 7px; background: #f4f8ff; }
+        .quality-item span { display: block; color: var(--eval-muted); font-size: 10px; font-weight: 800; text-transform: uppercase; }
+        .quality-item strong { display: block; margin-top: 4px; color: var(--eval-navy); font-size: 16px; }
+
+        @@media (max-width: 1150px) { .metric-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @@media (max-width: 760px) {
+            .evaluation-page { padding: 14px; }
+            .evaluation-header, .section-title { display: block; }
+            .evaluation-actions { align-items: flex-start; margin-top: 10px; }
+            .metric-grid, .chart-grid, .method-grid, .quality-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+}
+
+<div class="evaluation-page">
+    @Html.AntiForgeryToken()
+    <div class="evaluation-header">
+        <div>
+            <h1>MODEL EVALUATION & ACCURACY</h1>
+            <p>Fresh chronological backtesting using every current CrimeReports event. SQL compresses incidents into weighted jurisdiction/crime aggregates before Python trains source-aware first-difference versions of CatBoost, XGBoost, and LightGBM.</p>
+        </div>
+        <div class="evaluation-actions">
+            <span class="evaluation-badge">70% train / 15% validation / 15% test</span>
+            <button id="retrainButton" type="button" class="retrain-button">Retrain on latest data</button>
+        </div>
+    </div>
+
+    <div id="evaluationStatus" class="evaluation-status">Loading CrimeReports data and running reproducible weekly model evaluation automatically...</div>
+
+    <section class="model-section">
+        <div class="section-title"><h2>Crime-count forecast</h2><span id="crimeTestWindow">Waiting for model...</span></div>
+        <div class="metric-grid">
+            <div class="metric-card"><span class="metric-label">Selected model</span><strong id="crimeModel" class="metric-value">-</strong><span class="metric-note">Source-aware delta validation winner</span></div>
+            <div class="metric-card"><span class="metric-label">Forecast accuracy</span><strong id="crimeAccuracy" class="metric-value green">-</strong><span class="metric-note">100 - held-out sMAPE</span></div>
+            <div class="metric-card"><span class="metric-label">MAE</span><strong id="crimeMae" class="metric-value">-</strong><span class="metric-note">Average absolute incident error</span></div>
+            <div class="metric-card"><span class="metric-label">R²</span><strong id="crimeR2" class="metric-value">-</strong><span class="metric-note">Held-out variance explained</span></div>
+            <div class="metric-card"><span class="metric-label">Baseline improvement</span><strong id="crimeSkill" class="metric-value green">-</strong><span class="metric-note">MAE vs last-week adaptive baseline</span></div>
+        </div>
+    </section>
+
+    <section class="model-section">
+        <div class="section-title"><h2>Harm-score forecast</h2><span id="harmTestWindow">Waiting for model...</span></div>
+        <div class="metric-grid">
+            <div class="metric-card"><span class="metric-label">Selected model</span><strong id="harmModel" class="metric-value">-</strong><span class="metric-note">Source-aware delta validation winner</span></div>
+            <div class="metric-card"><span class="metric-label">Forecast accuracy</span><strong id="harmAccuracy" class="metric-value green">-</strong><span class="metric-note">100 - held-out sMAPE</span></div>
+            <div class="metric-card"><span class="metric-label">MAE</span><strong id="harmMae" class="metric-value">-</strong><span class="metric-note">Average absolute harm-score error</span></div>
+            <div class="metric-card"><span class="metric-label">R²</span><strong id="harmR2" class="metric-value">-</strong><span class="metric-note">Held-out variance explained</span></div>
+            <div class="metric-card"><span class="metric-label">Baseline improvement</span><strong id="harmSkill" class="metric-value green">-</strong><span class="metric-note">MAE vs last-week adaptive baseline</span></div>
+        </div>
+    </section>
+
+    <div class="chart-grid">
+        <div class="evaluation-card"><h3>Crime: actual vs predicted</h3><p class="card-subtitle">Untouched test-period observations; closer lines indicate better generalisation.</p><div class="chart-box"><canvas id="crimeBacktestChart"></canvas></div></div>
+        <div class="evaluation-card"><h3>Harm: actual vs predicted</h3><p class="card-subtitle">Aggregated FBI Box-Cox severity (λ = 0.3229) on the untouched test period.</p><div class="chart-box"><canvas id="harmBacktestChart"></canvas></div></div>
+        <div class="evaluation-card"><h3>Candidate algorithm comparison</h3><p class="card-subtitle">Both targets compare source-aware delta variants of the research paper’s CatBoost, XGBoost, and LightGBM families. Validation MAE determines each winner.</p><div class="chart-box"><canvas id="candidateChart"></canvas></div></div>
+        <div class="evaluation-card"><h3>Most useful historical features</h3><p class="card-subtitle">Permutation importance measured on held-out data; larger values indicate greater predictive contribution.</p><div class="chart-box"><canvas id="importanceChart"></canvas></div></div>
+    </div>
+
+    <div class="method-grid">
+        <div class="evaluation-card">
+            <h3>Evaluation definitions</h3>
+            <ul class="method-list">
+                <li><strong>MAE:</strong> mean absolute error in the target's original units; lower is better.</li>
+                <li><strong>RMSE:</strong> penalises larger errors more strongly; lower is better.</li>
+                <li><strong>R²:</strong> variance explained on unseen time periods; 1 is ideal and values below 0 underperform a constant-mean prediction.</li>
+                <li><strong>Forecast accuracy:</strong> a readable regression summary defined as max(0, 100 - sMAPE), not classification accuracy.</li>
+                <li><strong>Baseline improvement:</strong> percentage MAE reduction against a last-week adaptive forecast.</li>
+            </ul>
+        </div>
+        <div class="evaluation-card">
+            <h3>Data quality used for this run</h3>
+            <div class="quality-grid">
+                <div class="quality-item"><span>SQL events used</span><strong id="rowsSent">-</strong></div>
+                <div class="quality-item"><span>Usable rows</span><strong id="usableRows">-</strong></div>
+                <div class="quality-item"><span>Dropped rows</span><strong id="droppedRows">-</strong></div>
+                <div class="quality-item"><span>Analysis range</span><strong id="analysisRange">-</strong></div>
+                <div class="quality-item"><span>Latest import</span><strong id="latestImport">-</strong></div>
+                <div class="quality-item"><span>Training completed</span><strong id="trainingCompleted">-</strong></div>
+            </div>
+            <p class="card-subtitle" style="margin-top:10px;min-height:0;">Every current SQL event is included, but incidents are transferred as compact weighted daily jurisdiction/crime aggregates. Newly imported sources are included automatically and source-coverage changes are explicit model features.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        const evaluationRunUrl = '@Url.Action("Run", "Analysis")';
+        const evaluationToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        const retrainButton = document.getElementById('retrainButton');
+        const evaluationCharts = {};
+
+        Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+        Chart.defaults.color = '#334155';
+
+        const number = (value, digits = 2) => value == null || Number.isNaN(Number(value)) ? 'N/A' : Number(value).toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });
+        const percent = value => value == null ? 'N/A' : `${number(value, 1)}%`;
+        const shortModel = value => String(value || 'N/A').replace('StandardScaler+', 'Std+').replace('RobustScaler+', 'Robust+').replace('Regressor', '');
+
+        function fillMetrics(prefix, forecast) {
+            const metrics = forecast.metrics || {};
+            document.getElementById(`${prefix}Model`).textContent = shortModel(forecast.model);
+            document.getElementById(`${prefix}Accuracy`).textContent = percent(metrics.accuracyPercent);
+            document.getElementById(`${prefix}Mae`).textContent = number(metrics.mae);
+            document.getElementById(`${prefix}R2`).textContent = number(metrics.r2, 3);
+            document.getElementById(`${prefix}Skill`).textContent = percent(metrics.maeImprovementPct);
+            document.getElementById(`${prefix}TestWindow`).textContent = `${metrics.testDateFrom || 'N/A'} to ${metrics.testDateTo || 'N/A'} · ${metrics.testPeriods || 0} test periods · RMSE ${number(metrics.rmse)}`;
+        }
+
+        function backtestChart(canvasId, forecast, color, targetLabel) {
+            const points = forecast.backtest || [];
+            evaluationCharts[canvasId]?.destroy();
+            evaluationCharts[canvasId] = new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: points.map(x => x.period),
+                    datasets: [
+                        { label: `Actual ${targetLabel}`, data: points.map(x => x.actual), borderColor: '#334155', borderWidth: 2, pointRadius: 0, tension: .15 },
+                        { label: `Predicted ${targetLabel}`, data: points.map(x => x.predicted), borderColor: color, backgroundColor: `${color}18`, borderWidth: 2, pointRadius: 0, tension: .15, fill: true }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { x: { ticks: { maxTicksLimit: 9 } } } }
+            });
+        }
+
+        function candidateChart(crime, harm) {
+            const crimeScores = crime.metrics?.candidateScores || [];
+            const harmScores = harm.metrics?.candidateScores || [];
+            const labels = [...new Set(crimeScores.concat(harmScores).map(x => shortModel(x.model)))];
+            const scoreFor = (scores, label) => scores.find(x => shortModel(x.model) === label)?.mae ?? null;
+            evaluationCharts.candidateChart?.destroy();
+            evaluationCharts.candidateChart = new Chart(document.getElementById('candidateChart'), {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Crime validation MAE', data: labels.map(x => scoreFor(crimeScores, x)), backgroundColor: '#174fe4', borderRadius: 4 },
+                    { label: 'Harm validation MAE', data: labels.map(x => scoreFor(harmScores, x)), backgroundColor: '#006b3f', borderRadius: 4 }
+                ] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { maxRotation: 35, minRotation: 20 } } } }
+            });
+        }
+
+        function importanceChart(crime, harm) {
+            const clean = value => String(value || '').replaceAll('_', ' ');
+            const crimeRows = (crime.featureImportance || []).slice(0, 8);
+            const harmRows = (harm.featureImportance || []).slice(0, 8);
+            const labels = [...new Set(crimeRows.concat(harmRows).map(x => clean(x.feature)))].slice(0, 10);
+            const find = (rows, label) => rows.find(x => clean(x.feature) === label)?.importance ?? 0;
+            evaluationCharts.importanceChart?.destroy();
+            evaluationCharts.importanceChart = new Chart(document.getElementById('importanceChart'), {
+                type: 'bar',
+                data: { labels, datasets: [
+                    { label: 'Crime', data: labels.map(x => find(crimeRows, x)), backgroundColor: '#174fe4', borderRadius: 4 },
+                    { label: 'Harm', data: labels.map(x => find(harmRows, x)), backgroundColor: '#006b3f', borderRadius: 4 }
+                ] },
+                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        async function loadEvaluation(forceRetrain = false) {
+            const status = document.getElementById('evaluationStatus');
+            status.classList.remove('error');
+            status.textContent = forceRetrain
+                ? 'Retraining all candidate models on the latest CrimeReports data...'
+                : 'Loading the latest completed evaluation; retraining only when the database has changed...';
+            retrainButton.disabled = true;
+            retrainButton.textContent = forceRetrain ? 'Retraining...' : 'Loading...';
+            try {
+                const response = await fetch(evaluationRunUrl, {
+                    method: 'POST',
+                    cache: 'no-store',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': evaluationToken },
+                    body: JSON.stringify({ frequency: 'W', forecastPeriods: 12, pageSize: 250000, includeAllRows: true, forceRetrain })
+                });
+                const responseText = await response.text();
+                let data = {};
+                try {
+                    data = responseText ? JSON.parse(responseText) : {};
+                } catch {
+                    data = {};
+                }
+                if (!response.ok) throw new Error(data.message || 'The analysis API could not complete the evaluation.');
+
+                const result = data.pythonResult;
+                const crime = result.forecasts.crimeCount;
+                const harm = result.forecasts.severityTotal;
+                fillMetrics('crime', crime);
+                fillMetrics('harm', harm);
+                backtestChart('crimeBacktestChart', crime, '#174fe4', 'incidents');
+                backtestChart('harmBacktestChart', harm, '#006b3f', 'harm');
+                candidateChart(crime, harm);
+                importanceChart(crime, harm);
+
+                const quality = result.dataQuality || {};
+                const anomalies = quality.anomalies || {};
+                const trainingRun = result.trainingRun || {};
+                document.getElementById('rowsSent').textContent = Number(data.rowsSentToPython || 0).toLocaleString();
+                document.getElementById('usableRows').textContent = Number(quality.usableRows || 0).toLocaleString();
+                document.getElementById('droppedRows').textContent = Number(quality.droppedRows || 0).toLocaleString();
+                document.getElementById('analysisRange').textContent = `${anomalies.analysisDateFrom || result.summary?.dateFrom || 'N/A'} to ${anomalies.analysisDateTo || result.summary?.dateTo || 'N/A'}`;
+                document.getElementById('latestImport').textContent = data.latestImportedAtUtc ? new Date(data.latestImportedAtUtc).toLocaleString() : 'N/A';
+                document.getElementById('trainingCompleted').textContent = trainingRun.completedAtUtc ? new Date(trainingRun.completedAtUtc).toLocaleString() : 'N/A';
+
+                const crimeCandidates = crime.metrics?.candidateScores?.length || 0;
+                const harmCandidates = harm.metrics?.candidateScores?.length || 0;
+                const coverage = data.rowsTruncated
+                    ? `The database has ${Number(data.totalAvailableRows || 0).toLocaleString()} matching rows, so the newest ${Number(data.rowsSentToPython || 0).toLocaleString()} were used.`
+                    : `All ${Number(data.rowsSentToPython || 0).toLocaleString()} matching SQL events were used through ${Number(data.aggregateRowsSentToPython || 0).toLocaleString()} weighted aggregate rows.`;
+                const completion = data.cachedResult
+                    ? 'Showing the latest completed evaluation'
+                    : 'Fresh retraining complete';
+                status.textContent = `${completion} for ${data.dataScope || 'the selected data scope'}. ${coverage} ${crimeCandidates} crime candidates and ${harmCandidates} harm candidates were validated; displayed scores come only from the later untouched test period.`;
+            } catch (error) {
+                status.classList.add('error');
+                status.textContent = error.message || 'The evaluation could not be loaded. You can safely retry.';
+            } finally {
+                retrainButton.disabled = false;
+                retrainButton.textContent = 'Retrain on latest data';
+            }
+        }
+
+        retrainButton.addEventListener('click', () => loadEvaluation(true));
+        loadEvaluation();
+    </script>
+}

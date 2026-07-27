@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Any
 
 import numpy as np
@@ -10,7 +11,13 @@ from sklearn.preprocessing import LabelEncoder
 
 MISSING_REJECT_THRESHOLD = 0.60
 CORE_COLUMNS = ["incident_at", "crime_type", "neighborhood"]
-CATEGORICAL_COLUMNS = ["crime_type", "neighborhood", "reporting_area"]
+CATEGORICAL_COLUMNS = [
+    "crime_type",
+    "neighborhood",
+    "reporting_area",
+    "jurisdiction",
+    "data_source",
+]
 
 
 @dataclass
@@ -64,7 +71,8 @@ def preprocess_for_analysis(frame: pd.DataFrame) -> PreprocessResult:
         "encoding": encoding_report,
         "scaling": {
             "appliedToModelFeatures": True,
-            "method": "StandardScaler inside the forecasting pipeline",
+            "method": "StandardScaler and RobustScaler are compared inside applicable forecasting pipelines; scale-invariant tree candidates remain unscaled.",
+            "fitScope": "Each scaler is fitted on its chronological training fold only and is refitted for every analysis request.",
         },
     }
 
@@ -121,6 +129,9 @@ def _remove_anomalies(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
         "invalidLatitudeRowsRemoved": 0,
         "invalidLongitudeRowsRemoved": 0,
         "futureIncidentDateRowsRemoved": 0,
+        "sparseLeadingDateRowsRemoved": 0,
+        "analysisDateFrom": None,
+        "analysisDateTo": None,
         "checkedColumns": [],
     }
 
@@ -149,6 +160,22 @@ def _remove_anomalies(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
         mask = result["incident_at"] > pd.Timestamp.utcnow().tz_localize(None)
         anomaly_report["futureIncidentDateRowsRemoved"] = int(mask.sum())
         result = result.loc[~mask].copy()
+
+        # Isolated early timestamps can create years of artificial zero-count
+        # periods after resampling. Find the first year with meaningful dataset
+        # support instead of hard-coding a jurisdiction-specific start date.
+        year_counts = result["incident_at"].dt.year.value_counts().sort_index()
+        support_threshold = max(3, math.ceil(len(result) * 0.001))
+        supported_years = year_counts[year_counts >= support_threshold]
+        if not supported_years.empty:
+            first_supported_year = int(supported_years.index.min())
+            sparse_leading_mask = result["incident_at"].dt.year < first_supported_year
+            anomaly_report["sparseLeadingDateRowsRemoved"] = int(sparse_leading_mask.sum())
+            result = result.loc[~sparse_leading_mask].copy()
+
+        if not result.empty:
+            anomaly_report["analysisDateFrom"] = result["incident_at"].min().date().isoformat()
+            anomaly_report["analysisDateTo"] = result["incident_at"].max().date().isoformat()
 
     return result, anomaly_report
 

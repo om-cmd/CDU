@@ -383,6 +383,56 @@
                 cursor: pointer;
             }
 
+        .api-source-card {
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 1rem;
+            background: #eff6ff;
+            color: #1e3a5f;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        .api-source-card strong {
+            display: block;
+            color: #0f172a;
+            margin-bottom: 0.25rem;
+        }
+
+        .api-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        .api-grid label {
+            color: #374151;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .api-grid input,
+        .api-grid select {
+            width: 100%;
+            margin-top: 0.3rem;
+            padding: 0.48rem 0.6rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: #fff;
+            color: #111827;
+        }
+
+        .api-url-field {
+            grid-column: 1 / -1;
+        }
+
+        .api-help {
+            margin: 0.8rem 0 0;
+            color: #6b7280;
+            font-size: 0.75rem;
+        }
+
         /* Progress */
         .import-progress {
             display: none;
@@ -682,20 +732,29 @@
             </svg>
             Crime Data
         </h1>
-        <p>Cambridge, MA · Data source: CrimeReport database table</p>
+        <p>Imported crime records · Data source: CrimeReport database table</p>
     </div>
     <div class="page-header-actions">
         <a href="@Url.Action("CrimeReport", "CrimeReport")" class="btn-new-report">
             <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" /></svg>
             New Report
         </a>
-        <button class="btn-bulk-import" onclick="openImport()">
-            <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
-                <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
-            </svg>
-            Bulk Import CSV
-        </button>
+        @if (User.IsInRole("SuperAdmin"))
+        {
+            <button class="btn-bulk-import" onclick="openImport()">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                    <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
+                </svg>
+                Bulk Import CSV
+            </button>
+            <button class="btn-bulk-import" onclick="openJsonImport()">
+                <svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.5 1A1.5 1.5 0 0 0 3 2.5v11A1.5 1.5 0 0 0 4.5 15h7a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 11.5 1h-7zM6 5.5a.5.5 0 0 1-.5.5H5v4h.5a.5.5 0 0 1 0 1H5a1 1 0 0 1-1-1V9.5a1 1 0 0 0-.5-.866A1 1 0 0 1 4 6.5V6a1 1 0 0 1 1-1h.5a.5.5 0 0 1 .5.5zm4 0a.5.5 0 0 1 .5-.5h.5a1 1 0 0 1 1 1v.5a1 1 0 0 1 .5.866 1 1 0 0 0-.5.866V10a1 1 0 0 1-1 1h-.5a.5.5 0 0 1 0-1h.5V6h-.5a.5.5 0 0 1-.5-.5z"/>
+                </svg>
+                Import from JSON API
+            </button>
+        }
     </div>
 </div>
 
@@ -708,13 +767,13 @@
     </div>
 </div>
 
-<div class="source-audit">
+@* <div class="source-audit">
     <div>SQL Server<strong id="srcServer">Checking…</strong></div>
     <div>Database<strong id="srcDatabase">Checking…</strong></div>
     <div>Table<strong id="srcTable">CrimeReports</strong></div>
     <div>SQL Row Count<strong id="srcRows">Checking…</strong></div>
 </div>
-
+ *@
 <!-- DATA TABLE -->
 <div class="table-wrap">
     <table id="crimeTable" class="table table-bordered w-100" style="display:none;">
@@ -760,6 +819,17 @@
                     Skip records with duplicate file numbers
                 </label>
             </div>
+            <div class="api-grid">
+                <label>
+                    Default jurisdiction
+                    <input type="text" id="csvJurisdiction" placeholder="e.g. Cambridge, MA, USA" />
+                </label>
+                <label>
+                    Data source
+                    <input type="text" id="csvDataSource" placeholder="e.g. city open-data CSV" />
+                </label>
+            </div>
+            <p class="api-help">CSV columns named “Jurisdiction” and “Data Source” override these defaults per row.</p>
             <div class="import-progress" id="importProgress">
                 <div class="prog-label">
                     <span id="progText">Uploading…</span>
@@ -785,6 +855,77 @@
                     <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z" />
                 </svg>
                 Import to Database
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── JSON API IMPORT MODAL ── -->
+<div class="imp-modal-overlay" id="jsonImportModal">
+    <div class="imp-modal">
+        <div class="imp-modal-head">
+            <div>
+                <h3>Import from a JSON API</h3>
+                <p>Fetch compatible crime records directly from a public API</p>
+            </div>
+            <button class="imp-modal-close" onclick="closeJsonImport()">✕</button>
+        </div>
+        <div class="imp-modal-body">
+            <div class="api-source-card">
+                <strong>Transactional API import</strong>
+                The server validates and fetches JSON in small pages. Nothing is committed unless
+                the complete import succeeds; cancelling or any failure rolls everything back.
+            </div>
+            <div class="api-grid">
+                <label class="api-url-field">
+                    JSON API URL
+                    <input type="url" id="jsonApiUrl"
+                           value="https://data.cityofchicago.org/resource/ijzp-q8t2.json"
+                           placeholder="https://example.gov/resource/dataset.json" />
+                </label>
+                <label>
+                    From year (optional)
+                    <input type="number" id="jsonFromYear" min="2001" max="@DateTime.UtcNow.Year" value="@DateTime.UtcNow.Year" />
+                </label>
+                <label>
+                    Jurisdiction
+                    <input type="text" id="jsonJurisdiction" value="Chicago, IL, USA" placeholder="City, region, country" />
+                </label>
+                <label>
+                    Maximum records to check
+                    <select id="jsonMaxRecords">
+                        <option value="5000">5,000</option>
+                        <option value="25000" selected>25,000</option>
+                        <option value="50000">50,000</option>
+                        <option value="100000">100,000</option>
+                    </select>
+                </label>
+            </div>
+            <p class="api-help">
+                Supports Socrata-style JSON arrays using fields such as case_number, date,
+                primary_type, district, community_area, latitude and longitude.
+            </p>
+            <div class="import-progress" id="jsonImportProgress">
+                <div class="prog-label">
+                    <span id="jsonProgText">Connecting…</span>
+                    <span id="jsonProgPct">0%</span>
+                </div>
+                <div class="prog-bar-wrap"><div class="prog-bar" id="jsonProgBar"></div></div>
+            </div>
+            <div class="import-result" id="jsonImportResult">
+                <div class="import-result-inner">
+                    <div class="import-result-icon" id="jsonImportResultIcon"></div>
+                    <div>
+                        <div id="jsonImportResultMsg"></div>
+                        <div class="import-result-stats" id="jsonImportResultStats"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="imp-modal-foot">
+            <button class="btn-cancel-sm" id="btnJsonImportCancel" onclick="closeJsonImport()">Cancel</button>
+            <button class="btn-imp-do" id="btnJsonImport" onclick="doJsonImport()">
+                Import JSON to Database
             </button>
         </div>
     </div>
@@ -819,6 +960,7 @@
         const EDIT_BASE   = '@Url.Action("CrimeReport", "CrimeReport")';
         const DEL_URL     = '@Url.Action("Delete", "CrimeReport")';
         const IMPORT_URL  = '@Url.Action("ImportCsv", "CrimeReport")';
+        const JSON_IMPORT_URL = '@Url.Action("ImportJsonApi", "CrimeReport")';
         const EXPORT_URL  = '@Url.Action("ExportCsv", "CrimeData")';
         const LOADDATA_URL= '@Url.Action("LoadData", "CrimeData")';
         const SOURCE_URL  = '@Url.Action("SourceInfo", "CrimeData")';
@@ -826,6 +968,8 @@
 
         let quickDelTarget = null;
         let dtTable        = null;
+        let csvImportController = null;
+        let jsonImportController = null;
 
         function hideLoadingOverlay() {
         $('#loadingOverlay').fadeOut(300);
@@ -912,10 +1056,14 @@
 
         function updateSourceAudit(source) {
         if (!source) return;
-        document.getElementById('srcServer').textContent = source.server || 'Unknown';
-        document.getElementById('srcDatabase').textContent = source.database || 'Unknown';
-        document.getElementById('srcTable').textContent = source.table || 'CrimeReports';
-        document.getElementById('srcRows').textContent = `${Number(source.rowCount || 0).toLocaleString()} rows @@ ${source.countedAt || source.checkedAt || ''}`;
+        const srcServer = document.getElementById('srcServer');
+        const srcDatabase = document.getElementById('srcDatabase');
+        const srcTable = document.getElementById('srcTable');
+        const srcRows = document.getElementById('srcRows');
+        if (srcServer) srcServer.textContent = source.server || 'Unknown';
+        if (srcDatabase) srcDatabase.textContent = source.database || 'Unknown';
+        if (srcTable) srcTable.textContent = source.table || 'CrimeReports';
+        if (srcRows) srcRows.textContent = `${Number(source.rowCount || 0).toLocaleString()} rows @@ ${source.countedAt || source.checkedAt || ''}`;
         }
 
         // ── Delete ───────────────────────────────────────────────────────────
@@ -965,6 +1113,7 @@
         }
 
         function closeImport() {
+        if (csvImportController) csvImportController.abort();
         document.getElementById('importModal').classList.remove('open');
         resetImportUI();
         }
@@ -984,6 +1133,110 @@
         </svg>
         Import to Database`;
         document.getElementById('btnImportCancel').textContent = 'Cancel';
+        }
+
+        function openJsonImport() {
+        document.getElementById('jsonImportModal').classList.add('open');
+        resetJsonImportUI();
+        }
+
+        function closeJsonImport() {
+        if (jsonImportController) jsonImportController.abort();
+        document.getElementById('jsonImportModal').classList.remove('open');
+        resetJsonImportUI();
+        }
+
+        function setJsonProgress(pct, label) {
+        document.getElementById('jsonProgBar').style.width = pct + '%';
+        document.getElementById('jsonProgText').textContent = label;
+        document.getElementById('jsonProgPct').textContent = pct + '%';
+        }
+
+        function resetJsonImportUI() {
+        document.getElementById('jsonImportProgress').classList.remove('show');
+        document.getElementById('jsonImportResult').className = 'import-result';
+        document.getElementById('btnJsonImport').disabled = false;
+        document.getElementById('btnJsonImport').textContent = 'Import JSON to Database';
+        document.getElementById('btnJsonImportCancel').textContent = 'Cancel';
+        setJsonProgress(0, '');
+        }
+
+        async function doJsonImport() {
+        const apiUrl = document.getElementById('jsonApiUrl').value.trim();
+        const fromYear = document.getElementById('jsonFromYear').value;
+        const jurisdiction = document.getElementById('jsonJurisdiction').value.trim();
+        const maxRecords = document.getElementById('jsonMaxRecords').value;
+        const btn = document.getElementById('btnJsonImport');
+        const resultEl = document.getElementById('jsonImportResult');
+
+        if (!apiUrl) {
+        showToast('Enter a JSON API URL.', 'error');
+        return;
+        }
+
+        jsonImportController = new AbortController();
+        btn.disabled = true;
+        btn.innerHTML = '<span class="sm-spinner"></span> Importing…';
+        document.getElementById('btnJsonImportCancel').textContent = 'Cancel Import';
+        document.getElementById('jsonImportProgress').classList.add('show');
+        resultEl.className = 'import-result';
+        setJsonProgress(15, 'Connecting to JSON API…');
+
+        const body = new URLSearchParams({ apiUrl, maxRecords });
+        if (fromYear) body.append('fromYear', fromYear);
+        if (jurisdiction) body.append('jurisdiction', jurisdiction);
+        try {
+        setJsonProgress(60, 'Fetching and validating JSON pages…');
+        const res = await fetch(JSON_IMPORT_URL, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-Requested-With': 'XMLHttpRequest',
+        'RequestVerificationToken': TOKEN
+        },
+        body,
+        signal: jsonImportController.signal
+        });
+        const data = await res.json();
+        setJsonProgress(100, res.ok ? 'Done' : 'Stopped');
+
+        if (res.ok) {
+        resultEl.className = 'import-result show success';
+        document.getElementById('jsonImportResultIcon').textContent = '✅';
+        document.getElementById('jsonImportResultMsg').textContent =
+        `Import complete — ${data.inserted.toLocaleString()} new records saved.`;
+        document.getElementById('jsonImportResultStats').innerHTML = `
+        <span class="import-stat">Fetched: ${data.fetched.toLocaleString()}</span>
+        <span class="import-stat">Inserted: ${data.inserted.toLocaleString()}</span>
+        <span class="import-stat">Skipped: ${data.skipped.toLocaleString()}</span>
+        ${data.errors > 0 ? `<span class="import-stat">Errors: ${data.errors.toLocaleString()}</span>` : ''}`;
+        showToast(`Imported ${data.inserted.toLocaleString()} API records.`, 'success');
+        dtTable.ajax.reload(null, false);
+        } else {
+        resultEl.className = 'import-result show error';
+        document.getElementById('jsonImportResultIcon').textContent = '❌';
+        document.getElementById('jsonImportResultMsg').textContent =
+        data.message || 'The JSON import could not be completed.';
+        document.getElementById('jsonImportResultStats').textContent =
+        data.rolledBack ? 'No records were saved.' : '';
+        showToast('JSON API import failed.', 'error');
+        }
+        } catch (error) {
+        setJsonProgress(100, 'Stopped');
+        resultEl.className = 'import-result show error';
+        document.getElementById('jsonImportResultIcon').textContent = '❌';
+        document.getElementById('jsonImportResultMsg').textContent =
+        error.name === 'AbortError'
+        ? 'Import cancelled. The server will roll back all database changes.'
+        : 'The request was interrupted. No partial import will be kept.';
+        document.getElementById('jsonImportResultStats').textContent = 'No records were saved.';
+        showToast(error.name === 'AbortError' ? 'Import cancelled.' : 'JSON API import failed.', 'error');
+        } finally {
+        jsonImportController = null;
+        btn.disabled = false;
+        btn.textContent = 'Import Again';
+        document.getElementById('btnJsonImportCancel').textContent = 'Close';
+        }
         }
 
         function setProgress(pct, label) {
@@ -1012,9 +1265,10 @@
 
         const skipDupes = document.getElementById('optSkipDuplicates').checked;
         const btn = document.getElementById('btnImport');
+        csvImportController = new AbortController();
         btn.disabled = true;
         btn.innerHTML = '<span class="sm-spinner"></span> Importing…';
-        document.getElementById('btnImportCancel').textContent = 'Close';
+        document.getElementById('btnImportCancel').textContent = 'Cancel Import';
 
         const prog = document.getElementById('importProgress');
         prog.classList.add('show');
@@ -1025,13 +1279,16 @@
         const fd = new FormData();
         fd.append('file', file);
         fd.append('skipDuplicates', skipDupes);
+        fd.append('defaultJurisdiction', document.getElementById('csvJurisdiction').value.trim());
+        fd.append('defaultDataSource', document.getElementById('csvDataSource').value.trim());
 
         try {
         setProgress(55, 'Processing rows…');
         const res  = await fetch(IMPORT_URL, {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest', 'RequestVerificationToken': TOKEN },
-        body: fd
+        body: fd,
+        signal: csvImportController.signal
         });
 
         setProgress(90, 'Saving to database…');
@@ -1065,10 +1322,14 @@
         const resultEl = document.getElementById('importResult');
         resultEl.className = 'import-result show error';
         document.getElementById('importResultIcon').textContent = '❌';
-        document.getElementById('importResultMsg').textContent  = 'Network error — please try again.';
-        document.getElementById('importResultStats').innerHTML  = '';
-        showToast('Network error during import.', 'error');
+        document.getElementById('importResultMsg').textContent =
+        e.name === 'AbortError'
+        ? 'Import cancelled. All database changes will be rolled back.'
+        : 'Import interrupted. No partial import will be kept.';
+        document.getElementById('importResultStats').textContent = 'No records were saved.';
+        showToast(e.name === 'AbortError' ? 'Import cancelled.' : 'Import failed.', 'error');
         } finally {
+        csvImportController = null;
         btn.disabled = false;
         btn.innerHTML = `
         <svg width="13" height="13" fill="currentColor" viewBox="0 0 16 16">
@@ -1076,6 +1337,7 @@
         <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
         </svg>
         Import Again`;
+        document.getElementById('btnImportCancel').textContent = 'Close';
         }
         }
 
@@ -1097,7 +1359,7 @@
         }
         });
         document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') { closeImport(); closeQuickDel(); }
+        if (e.key === 'Escape') { closeImport(); closeJsonImport(); closeQuickDel(); }
         });
         });
 

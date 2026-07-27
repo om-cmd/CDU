@@ -1,0 +1,76 @@
+@model Core_Layer.Models.DashboardStatsModel
+
+@{
+    var filters = Model.Filters ?? new Core_Layer.Models.DashboardFilterModel();
+    var options = Model.FilterOptions ?? new Core_Layer.Models.DashboardFilterOptions();
+}
+
+<div class="dashboard-filter-panel">
+    <form method="get" class="dashboard-filter-form">
+        <div class="filter-field search-field">
+            <label for="Search">Search</label>
+            <input id="Search" name="Search" value="@filters.Search" type="search" placeholder="File, place, area" autocomplete="off" />
+        </div>
+
+        <div class="filter-field">
+            <label for="CrimeType">Crime Type</label>
+            <select id="CrimeType" name="CrimeType">
+                <option value="">All types</option>
+                @foreach (var crimeType in options.CrimeTypes)
+                {
+                    <option value="@crimeType" selected="@(string.Equals(filters.CrimeType, crimeType, StringComparison.OrdinalIgnoreCase))">@crimeType</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-field">
+            <label for="Location">Location</label>
+            <select id="Location" name="Location">
+                <option value="">All locations</option>
+                @foreach (var location in options.Locations)
+                {
+                    <option value="@location" selected="@(string.Equals(filters.Location, location, StringComparison.OrdinalIgnoreCase))">@location</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-field small-field">
+            <label for="Year">Year</label>
+            <select id="Year" name="Year">
+                <option value="">All years</option>
+                @foreach (var year in options.Years)
+                {
+                    <option value="@year" selected="@(filters.Year == year)">@year</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-field">
+            <label for="DateFrom">Report From</label>
+            <input id="DateFrom" name="DateFrom" value="@filters.DateFrom?.ToString("yyyy-MM-dd")" type="date" />
+        </div>
+
+        <div class="filter-field">
+            <label for="DateTo">Report To</label>
+            <input id="DateTo" name="DateTo" value="@filters.DateTo?.ToString("yyyy-MM-dd")" type="date" />
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="filter-apply">
+                <i class="material-icons">filter_alt</i>
+                Apply
+            </button>
+            <a class="filter-reset" href="@Url.Action(ViewContext.RouteData.Values["action"]?.ToString(), ViewContext.RouteData.Values["controller"]?.ToString())" title="Clear filters">
+                <i class="material-icons">restart_alt</i>
+            </a>
+        </div>
+    </form>
+
+    <div class="filter-summary">
+        <span>@(Model.IsFiltered ? "Filtered view" : "All records")</span>
+        <strong>@Model.TotalRecords.ToString("N0")</strong>
+        <span>records</span>
+        <strong>@Model.TotalWithCoords.ToString("N0")</strong>
+        <span>mappable</span>
+    </div>
+</div>

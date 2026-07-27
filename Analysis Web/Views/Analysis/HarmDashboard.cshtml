@@ -269,6 +269,8 @@
         <p>This dashboard measures crime using Crime Severity Scores based on imprisonment-day equivalents, reflecting the true harm caused by offences.</p>
     </div>
 
+    @await Html.PartialAsync("_DashboardFilters", Model)
+
     @if (Model.TotalRecords == 0)
     {
         <div class="dash-card" style="margin-bottom:12px;border-left:4px solid #ffcd00;">
@@ -354,7 +356,7 @@
         <div class="dash-card span-2">
             <h2>Python Harm Prediction</h2>
             <div class="chart-box"><canvas id="pythonHarmForecast"></canvas></div>
-            <div id="harmPredictionStatus" class="prediction-status">Loading Python prediction from CrimeReports...</div>
+            <div id="harmPredictionStatus" class="prediction-status">Loading prediction automatically...</div>
         </div>
     </div>
 
@@ -431,19 +433,18 @@
         }
 
         const totalRecords = @Model.TotalRecords;
-        if (totalRecords > 0) {
-            loadPythonHarmPrediction();
-        } else {
+        if (totalRecords <= 0) {
             document.getElementById('harmPredictionStatus').textContent = 'No SQL CrimeReports rows found, so Python prediction was not run.';
         }
 
         async function loadPythonHarmPrediction() {
             const status = document.getElementById('harmPredictionStatus');
+            status.textContent = 'Running Python harm prediction...';
             try {
                 const res = await fetch(runUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
-                    body: JSON.stringify({ frequency: 'W', forecastPeriods: 12, pageSize: 100000 })
+                    body: JSON.stringify({ frequency: 'W', forecastPeriods: 12, pageSize: 250000 })
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.message || 'Python API failed.');
@@ -466,5 +467,7 @@
                 status.textContent = `${error.message} Start the Python FastAPI service on port 8001 to show predictions.`;
             }
         }
+
+        if (totalRecords > 0) loadPythonHarmPrediction();
     </script>
 }

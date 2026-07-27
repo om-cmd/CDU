@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">Analysis government style logo</title>
+  <desc id="desc">A red civic flower mark above blue analysis text bars.</desc>
+  <rect width="240" height="240" rx="18" fill="#ffffff"/>
+  <path d="M120 30c10 24 10 48 0 72-10-24-10-48 0-72z" fill="#d7153a"/>
+  <path d="M88 44c23 13 37 32 43 57-22-14-36-33-43-57z" fill="#d7153a"/>
+  <path d="M152 44c-23 13-37 32-43 57 22-14 36-33 43-57z" fill="#d7153a"/>
+  <path d="M60 75c28 4 50 16 66 38-29-4-51-17-66-38z" fill="#d7153a"/>
+  <path d="M180 75c-28 4-50 16-66 38 29-4 51-17 66-38z" fill="#d7153a"/>
+  <path d="M45 112c31-7 59-2 82 16-31 7-58 2-82-16z" fill="#d7153a"/>
+  <path d="M195 112c-31-7-59-2-82 16 31 7 58 2 82-16z" fill="#d7153a"/>
+  <circle cx="120" cy="126" r="16" fill="#002664"/>
+  <path d="M76 156h88v11H76z" fill="#002664"/>
+  <path d="M60 178h120v11H60z" fill="#002664"/>
+  <path d="M48 200h144v10H48z" fill="#002664"/>
+</svg>

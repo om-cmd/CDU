@@ -17,6 +17,6 @@ namespace Business_Layer
 
         DbSet<CrimeReport> CrimeReports { get; }
 
-        Task<int> SaveChangesAsync();
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

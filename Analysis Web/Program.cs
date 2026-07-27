@@ -65,7 +65,18 @@ builder.Services.AddHttpClient("CrimeAnalysisPython", client =>
 {
     var baseUrl = builder.Configuration["PythonAnalysisApi:BaseUrl"] ?? "http://localhost:8001";
     client.BaseAddress = new Uri(baseUrl);
+    // AnalysisController owns the explicit 30-minute timeout so browser refreshes
+    // do not cancel a model run that can be reused by the next page request.
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
+builder.Services.AddHttpClient("CrimeJsonImport", client =>
+{
     client.Timeout = TimeSpan.FromMinutes(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("CDU-Crime-Analysis/1.0");
+})
+.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    AllowAutoRedirect = false
 });
 
 var app = builder.Build();

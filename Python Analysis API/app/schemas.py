@@ -16,6 +16,9 @@ class CrimeReportRecord(BaseModel):
     reportingArea: Optional[str] = None
     neighborhood: Optional[str] = None
     location: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    dataSource: Optional[str] = None
+    eventCount: int = Field(default=1, ge=1)
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 

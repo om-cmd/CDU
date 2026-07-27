@@ -24,8 +24,7 @@ namespace Analysis_Web.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> LoadData(int draw, int start, int length,
-            string? searchValue, string? sortColumn, string? sortDir)
+        public async Task<IActionResult> LoadData(int draw, int start, int length,string? searchValue, string? sortColumn, string? sortDir)
         {
             Response.Headers.CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
             Response.Headers.Pragma = "no-cache";
@@ -57,6 +56,8 @@ namespace Analysis_Web.Controllers
                 reportingArea = r.ReportingArea ?? "—",
                 neighborhood = r.Neighborhood ?? "—",
                 location = r.Location ?? "—",
+                jurisdiction = r.Jurisdiction ?? "Unspecified",
+                dataSource = r.DataSource ?? "Unspecified",
                 latitude = r.Latitude?.ToString("F4") ?? "—",
                 longitude = r.Longitude?.ToString("F4") ?? "—",
             });
@@ -107,7 +108,7 @@ namespace Analysis_Web.Controllers
                 sortBy: null, ascending: false);
 
             var sb = new StringBuilder();
-            sb.AppendLine("File Number,Date of Report,Crime Date Time,Crime Type,Reporting Area,Neighborhood,Location,Latitude,Longitude");
+            sb.AppendLine("File Number,Date of Report,Crime Date Time,Crime Type,Reporting Area,Neighborhood,Location,Jurisdiction,Data Source,Latitude,Longitude");
 
             foreach (var r in reports)
             {
@@ -119,6 +120,8 @@ namespace Analysis_Web.Controllers
                     CsvQuote(r.ReportingArea),
                     CsvQuote(r.Neighborhood),
                     CsvQuote(r.Location),
+                    CsvQuote(r.Jurisdiction),
+                    CsvQuote(r.DataSource),
                     r.Latitude?.ToString("F7") ?? "",
                     r.Longitude?.ToString("F7") ?? ""
                 ));

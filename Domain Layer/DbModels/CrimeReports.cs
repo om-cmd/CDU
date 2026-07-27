@@ -34,6 +34,12 @@ namespace Domain_Layer.DbModels
         [MaxLength(255)]
         public string? Location { get; set; }
 
+        [MaxLength(100)]
+        public string? Jurisdiction { get; set; }
+
+        [MaxLength(120)]
+        public string? DataSource { get; set; }
+
         [Column(TypeName = "decimal(10,7)")]
         public decimal? Latitude { get; set; }
 

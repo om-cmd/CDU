@@ -5,26 +5,35 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e2b9b46d-7b49-49b0-8a79-ab00fe05d8eb" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/AnalysisController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/AnalysisController.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CommunicationController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CommunicationController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeDataController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeDataController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeReportController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/CrimeReportController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Controllers/HomeController.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Controllers/HomeController.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Program.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Analysis/CrimeDashboard.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Analysis/CrimeDashboard.cshtml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Analysis/HarmDashboard.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Analysis/HarmDashboard.cshtml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/CrimeReport.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/CrimeReport.cshtml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/Index.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/CrimeData/Index.cshtml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Analysis Web/Views/Shared/_Layout.cshtml" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/Views/Shared/_Layout.cshtml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Business Layer/Interface/ICommunicationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Interface/ICommunicationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Analysis Web/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/Analysis Web/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Interface/ICrimeReportInterface.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Interface/ICrimeReportInterface.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Business Layer/Services/CommunicationSchemaInitializer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CommunicationSchemaInitializer.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Business Layer/Services/CommunicationService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CommunicationService.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Business Layer/Services/CrimeDataService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CrimeDataService.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Business Layer/Services/CrimeReportService.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Business Layer/Services/CrimeReportService.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/AuthenticaitonViewModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/AuthenticaitonViewModels.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/CommunicationViewModels.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/CommunicationViewModels.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/CrimeReportViewModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/CrimeReportViewModel.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/DashboardStatsModel.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/DashboardStatsModel.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web API/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Web API/Program.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Web API/appsettings.json" beforeDir="false" afterPath="$PROJECT_DIR$/Web API/appsettings.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Core Layer/ViewModels/PythonAnalysisDtos.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Core Layer/ViewModels/PythonAnalysisDtos.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Domain Layer/DbModels/CrimeReports.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Domain Layer/DbModels/CrimeReports.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Domain Layer/IUnitOfWork/IUnitOfWork.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Domain Layer/IUnitOfWork/IUnitOfWork.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Domain Layer/IUnitOfWork/UnitOfWork.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Domain Layer/IUnitOfWork/UnitOfWork.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/app/schemas.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python Analysis API/app/schemas.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/app/services/analysis_service.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python Analysis API/app/services/analysis_service.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/app/services/preprocessing.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python Analysis API/app/services/preprocessing.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/app/services/severity.py" beforeDir="false" afterPath="$PROJECT_DIR$/Python Analysis API/app/services/severity.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Python Analysis API/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Python Analysis API/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +55,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
@@ -81,10 +91,20 @@
       <workItem from="1781327253168" duration="373000" />
       <workItem from="1781693216399" duration="751000" />
       <workItem from="1781695102919" duration="1285000" />
+      <workItem from="1781910361938" duration="4107000" />
+      <workItem from="1784865677053" duration="4493000" />
+      <workItem from="1784941177692" duration="713000" />
+      <workItem from="1785117287813" duration="3783000" />
+      <workItem from="1785128197709" duration="4214000" />
+      <workItem from="1785135469631" duration="596000" />
+      <workItem from="1785138139935" duration="11000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/main_py$main.coverage" NAME="main Coverage Results" MODIFIED="1784866439066" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/Python Analysis API/app" />
   </component>
 </project>

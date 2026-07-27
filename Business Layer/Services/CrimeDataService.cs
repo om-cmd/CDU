@@ -321,6 +321,8 @@ namespace Core_Layer.Services
             int iLoc = Get("Location");
             int iLat = Get("Reporting Area Lat");
             int iLon = Get("Reporting Area Lon");
+            int iJurisdiction = Get("Jurisdiction");
+            int iDataSource = Get("Data Source");
 
             for (int ln = 1; ln < lines.Length; ln++)
             {
@@ -343,6 +345,12 @@ namespace Core_Layer.Services
                     ReportingArea = Cell(iArea),
                     Neighborhood = Cell(iNbr),
                     Location = Cell(iLoc),
+                    Jurisdiction = string.IsNullOrWhiteSpace(Cell(iJurisdiction))
+                        ? "Unspecified"
+                        : Cell(iJurisdiction),
+                    DataSource = string.IsNullOrWhiteSpace(Cell(iDataSource))
+                        ? "CSV import"
+                        : Cell(iDataSource),
                     Latitude = CsvParseHelper.ParseDecimal(Cell(iLat)),
                     Longitude = CsvParseHelper.ParseDecimal(Cell(iLon)),
                     ReportYear = reportDate?.Year,

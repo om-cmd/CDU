@@ -6,8 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
     <title>@ViewData["Title"] - Analysis</title>
-    <link rel="icon" type="image/x-icon" href="~/favicon.png" />
-    <!-- Google Fonts & Material Icons -->
+    <link rel="icon" type="image/png" href="~/favicon.png" />
     <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700|Roboto+Slab:400,700|Material+Icons" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" />
 
@@ -84,6 +83,115 @@
             color: #64748b;
             font-size: .85rem;
         }
+
+        .dashboard-filter-panel {
+            background: #ffffff;
+            border: 1px solid #d7e1ef;
+            border-radius: 8px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+            margin-bottom: 14px;
+            padding: 12px;
+        }
+
+        .dashboard-filter-form {
+            display: grid;
+            grid-template-columns: minmax(180px, 1.3fr) repeat(5, minmax(130px, 1fr)) auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .filter-field {
+            min-width: 0;
+        }
+
+        .filter-field label {
+            display: block;
+            margin: 0 0 4px;
+            color: #31445f;
+            font-size: 10px;
+            font-weight: 900;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+
+        .filter-field input,
+        .filter-field select {
+            width: 100%;
+            height: 38px;
+            border: 1px solid #cbd7e6;
+            border-radius: 7px;
+            background: #f9fbfd;
+            color: #102a43;
+            font-size: 13px;
+            padding: 6px 9px;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .filter-apply,
+        .filter-reset {
+            height: 38px;
+            border-radius: 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 0;
+        }
+
+        .filter-apply {
+            gap: 5px;
+            padding: 0 12px;
+            color: #fff;
+            background: #002664;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .filter-reset {
+            width: 38px;
+            color: #002664;
+            background: #e8eef7;
+        }
+
+        .filter-apply .material-icons,
+        .filter-reset .material-icons {
+            font-size: 18px;
+        }
+
+        .filter-summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 9px;
+            color: #5b677a;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .filter-summary strong {
+            color: #102a43;
+        }
+
+        @@media (max-width: 1200px) {
+            .dashboard-filter-form {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .filter-actions {
+                justify-content: flex-start;
+            }
+        }
+
+        @@media (max-width: 760px) {
+            .dashboard-filter-form {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 
     @await RenderSectionAsync("Styles", required: false)
@@ -95,28 +203,23 @@
     <div class="wrapper">
 
         <!-- Sidebar -->
-        <div class="sidebar" data-color="purple" data-background-color="white">
+        <div class="sidebar" data-color="azure" data-background-color="white">
             <div class="logo">
                 <a asp-controller="Home" asp-action="Index" class="simple-text logo-normal">
+                    <img src="~/assets/img/nsw_analysis_logo.svg" alt="Analysis logo" style="width:36px;height:36px;object-fit:contain;margin-right:8px;vertical-align:middle;" />
                     Analysis
                 </a>
             </div>
 
             <div class="sidebar-wrapper">
                 <ul class="nav">
-                    <li class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" && ViewContext.RouteData.Values["action"]?.ToString() == "Dashboard" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Analysis" asp-action="Dashboard">
                             <i class="material-icons">dashboard</i>
                             <p>Dashboard</p>
                         </a>
                     </li>
 
-                    <li class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Privacy" ? "active" : "")">
-                        <a class="nav-link" asp-controller="Home" asp-action="Privacy">
-                            <i class="material-icons">lock</i>
-                            <p>Privacy</p>
-                        </a>
-                    </li>
                     <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "CrimeData" ? "active" : "")">
                         <a class="nav-link" asp-controller="CrimeData" asp-action="Index">
                             <i class="material-icons">policy</i>
@@ -139,6 +242,12 @@
                         <a class="nav-link" asp-controller="Analysis" asp-action="CrimeDashboard">
                             <i class="material-icons">analytics</i>
                             <p>Crime Dashboard</p>
+                        </a>
+                    </li>
+                    <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Analysis" && ViewContext.RouteData.Values["action"]?.ToString() == "ModelEvaluation" ? "active" : "")">
+                        <a class="nav-link" asp-controller="Analysis" asp-action="ModelEvaluation">
+                            <i class="material-icons">fact_check</i>
+                            <p>Model Evaluation</p>
                         </a>
                     </li>
                     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
@@ -271,6 +380,7 @@
     <script src="~/assets/js/core/jquery.min.js"></script>
     <script src="~/assets/js/core/popper.min.js"></script>
     <script src="~/assets/js/core/bootstrap-material-design.min.js"></script>
+    <script src="~/assets/js/plugins/perfect-scrollbar.jquery.min.js"></script>
 
     <!-- Material Dashboard JS -->
     <script src="~/assets/js/material-dashboard.js"></script>

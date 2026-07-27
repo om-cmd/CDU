@@ -27,10 +27,9 @@ namespace Analysis_Web.Controllers
         }
 
         [Authorize]
-        public async Task<IActionResult> Index()
+        public IActionResult Index([FromQuery] DashboardFilterModel filters)
         {
-            var stats = await GetDashboardStatsFromDb();
-            return View(stats);
+            return RedirectToAction("Dashboard", "Analysis", filters);
         }
 
         [HttpGet]

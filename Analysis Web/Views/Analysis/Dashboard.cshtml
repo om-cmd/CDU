@@ -1,0 +1,421 @@
+@using System.Text.Json
+@model Core_Layer.Models.DashboardStatsModel
+
+@{
+    ViewData["Title"] = "Crime and Harm Dashboard";
+    var topCrimeArea = Model.NeighborhoodCounts.FirstOrDefault();
+    var topHarmArea = Model.HarmByNeighborhood.FirstOrDefault();
+    var highHarmShare = Model.TotalRecords > 0 ? (double)Model.HighHarmIncidentCount / Model.TotalRecords * 100 : 0;
+    var mappableShare = Model.TotalRecords > 0 ? (double)Model.TotalWithCoords / Model.TotalRecords * 100 : 0;
+    var crimeMapPoints = JsonSerializer.Serialize(Model.MapPoints);
+    var harmMapPoints = JsonSerializer.Serialize(Model.MapPoints.Select(point => new
+    {
+        point.Lat,
+        point.Lng,
+        point.CrimeType,
+        point.FileNumber,
+        point.Neighborhood,
+        point.DateOfReport,
+        point.CssWeight
+    }));
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --brand-navy: #102a43;
+            --brand-teal: #0f766e;
+            --brand-red: #b42318;
+            --brand-amber: #b7791f;
+            --surface: #ffffff;
+            --page: #f5f7fa;
+            --ink: #111827;
+            --muted: #5b677a;
+            --line: #dbe3ef;
+        }
+
+        .mixed-dashboard {
+            margin: -15px;
+            padding: 22px;
+            background: var(--page);
+            color: var(--ink);
+        }
+
+        .dashboard-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 16px;
+        }
+
+        .brand-lockup {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .brand-lockup img {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+
+        .brand-lockup h1 {
+            margin: 0;
+            color: var(--brand-navy);
+            font-size: clamp(22px, 2.2vw, 31px);
+            font-weight: 900;
+            line-height: 1.1;
+        }
+
+        .brand-lockup p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .dashboard-actions {
+            display: flex;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        .icon-link {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            color: var(--brand-navy);
+            background: #fff;
+            border: 1px solid var(--line);
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .metric-card, .map-card, .empty-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(16, 42, 67, .07);
+            min-width: 0;
+        }
+
+        .metric-card {
+            min-height: 126px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .metric-label {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.3;
+            font-weight: 900;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            color: #fff;
+            background: var(--brand-navy);
+            flex: 0 0 auto;
+        }
+
+        .metric-card.crime .metric-icon { background: #2563eb; }
+        .metric-card.harm .metric-icon { background: var(--brand-red); }
+        .metric-card.map .metric-icon { background: var(--brand-teal); }
+        .metric-card.focus .metric-icon { background: var(--brand-amber); }
+
+        .metric-value {
+            display: block;
+            margin-top: 12px;
+            color: var(--ink);
+            font-size: clamp(22px, 2.3vw, 30px);
+            font-weight: 900;
+            line-height: 1;
+            overflow-wrap: anywhere;
+        }
+
+        .metric-note {
+            margin-top: 7px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .map-card {
+            padding: 14px;
+            overflow: hidden;
+        }
+
+        .map-card h2 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 12px;
+            color: var(--brand-navy);
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .map-box {
+            height: min(58vh, 520px);
+            min-height: 360px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 9px;
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .legend-strip {
+            height: 9px;
+            border-radius: 999px;
+        }
+
+        .crime-strip { background: linear-gradient(90deg, #bfdbfe, #60a5fa, #2563eb); }
+        .harm-strip { background: linear-gradient(90deg, #fef3c7, #f97316, #b42318); }
+
+        .empty-card {
+            margin-bottom: 12px;
+            padding: 14px 16px;
+            border-left: 4px solid var(--brand-amber);
+        }
+
+        .empty-card h2 {
+            margin: 0 0 5px;
+            color: var(--brand-navy);
+            font-size: 16px;
+            font-weight: 900;
+        }
+
+        .empty-card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .leaflet-popup-content {
+            font-family: "Segoe UI", system-ui, sans-serif;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+
+        @@media (max-width: 1180px) {
+            .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .map-grid { grid-template-columns: 1fr; }
+        }
+
+        @@media (max-width: 720px) {
+            .mixed-dashboard { padding: 14px; }
+            .dashboard-head { align-items: flex-start; flex-direction: column; }
+            .metric-grid { grid-template-columns: 1fr; }
+            .map-box { min-height: 320px; height: 420px; }
+        }
+    </style>
+}
+
+<div class="mixed-dashboard">
+    <div class="dashboard-head">
+        <div class="brand-lockup">
+            <img src="~/assets/img/nsw_analysis_logo.svg" alt="Crime Analysis logo" />
+            <div>
+                <h1>Crime and Harm Dashboard</h1>
+                <p>Separate incident-count and severity-weighted views using the same cleaned CrimeReports data.</p>
+            </div>
+        </div>
+        <div class="dashboard-actions">
+            <a class="icon-link" asp-controller="Analysis" asp-action="CrimeDashboard" title="Crime dashboard"><i class="material-icons">analytics</i></a>
+            <a class="icon-link" asp-controller="Analysis" asp-action="HarmDashboard" title="Harm dashboard"><i class="material-icons">balance</i></a>
+        </div>
+    </div>
+
+    @await Html.PartialAsync("_DashboardFilters", Model)
+
+    @if (Model.TotalRecords == 0)
+    {
+        <div class="empty-card">
+            <h2>No CrimeReports data found</h2>
+            <p>Import the CSV from Crime Data or create a manual crime report, then reload this page.</p>
+        </div>
+    }
+
+    <div class="metric-grid">
+        <div class="metric-card crime">
+            <div class="metric-top"><span class="metric-label">Crime incidents</span><span class="metric-icon"><i class="material-icons">groups</i></span></div>
+            <strong class="metric-value">@Model.TotalRecords.ToString("N0")</strong>
+            <span class="metric-note">Count-based demand across all reports.</span>
+        </div>
+
+        <div class="metric-card harm">
+            <div class="metric-top"><span class="metric-label">Total harm score</span><span class="metric-icon"><i class="material-icons">balance</i></span></div>
+            <strong class="metric-value">@Model.TotalHarm.ToString("N0")</strong>
+            <span class="metric-note">Severity-weighted CSS day equivalent.</span>
+        </div>
+
+        <div class="metric-card map">
+            <div class="metric-top"><span class="metric-label">Mappable reports</span><span class="metric-icon"><i class="material-icons">map</i></span></div>
+            <strong class="metric-value">@Model.TotalWithCoords.ToString("N0")</strong>
+            <span class="metric-note">@mappableShare.ToString("0.0")% include latitude and longitude.</span>
+        </div>
+
+        <div class="metric-card focus">
+            <div class="metric-top"><span class="metric-label">High-harm incidents</span><span class="metric-icon"><i class="material-icons">priority_high</i></span></div>
+            <strong class="metric-value">@Model.HighHarmIncidentCount.ToString("N0")</strong>
+            <span class="metric-note">@highHarmShare.ToString("0.0")% of reports have CSS weight 300+.</span>
+        </div>
+
+        <div class="metric-card crime">
+            <div class="metric-top"><span class="metric-label">Top crime location</span><span class="metric-icon"><i class="material-icons">place</i></span></div>
+            <strong class="metric-value">@(string.IsNullOrWhiteSpace(topCrimeArea.Key) ? "Not available" : topCrimeArea.Key)</strong>
+            <span class="metric-note">@topCrimeArea.Value.ToString("N0") incidents.</span>
+        </div>
+
+        <div class="metric-card harm">
+            <div class="metric-top"><span class="metric-label">Top harm location</span><span class="metric-icon"><i class="material-icons">local_fire_department</i></span></div>
+            <strong class="metric-value">@(topHarmArea?.Name ?? "Not available")</strong>
+            <span class="metric-note">@((topHarmArea?.TotalHarm ?? 0).ToString("N0")) harm score.</span>
+        </div>
+
+        <div class="metric-card map">
+            <div class="metric-top"><span class="metric-label">Latest report</span><span class="metric-icon"><i class="material-icons">event</i></span></div>
+            <strong class="metric-value">@Model.LatestReportDate</strong>
+            <span class="metric-note">Newest DateOfReport in SQL.</span>
+        </div>
+
+        <div class="metric-card focus">
+            <div class="metric-top"><span class="metric-label">Top crime category</span><span class="metric-icon"><i class="material-icons">category</i></span></div>
+            <strong class="metric-value">@(Model.CrimeTypeCounts.FirstOrDefault().Key ?? "Not available")</strong>
+            <span class="metric-note">@Model.CrimeTypeCounts.FirstOrDefault().Value.ToString("N0") reports.</span>
+        </div>
+    </div>
+
+    <div class="map-grid">
+        <div class="map-card">
+            <h2><i class="material-icons">analytics</i> Crime Count Map</h2>
+            <div id="crimeCountMap" class="map-box"></div>
+            <div class="legend"><span>Lower count</span><span class="legend-strip crime-strip"></span><span>Higher count</span></div>
+        </div>
+        <div class="map-card">
+            <h2><i class="material-icons">balance</i> Harm Weighted Map</h2>
+            <div id="harmWeightMap" class="map-box"></div>
+            <div class="legend"><span>Lower harm</span><span class="legend-strip harm-strip"></span><span>Higher harm</span></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script>
+        const crimeMapPoints = @Html.Raw(crimeMapPoints);
+        const harmMapPoints = @Html.Raw(harmMapPoints);
+
+        function createBaseMap(elementId) {
+            const map = L.map(elementId, { zoomControl: true, scrollWheelZoom: false });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            return map;
+        }
+
+        function validPoint(point) {
+            return Number.isFinite(Number(point.Lat)) && Number.isFinite(Number(point.Lng));
+        }
+
+        function popupHtml(point) {
+            const file = point.FileNumber || 'No file number';
+            const type = point.CrimeType || 'Unknown crime';
+            const area = point.Neighborhood || 'Unspecified location';
+            const date = point.DateOfReport || 'No report date';
+            const harm = Number(point.CssWeight || 0).toLocaleString();
+            return `<strong>${type}</strong><br>${area}<br>File: ${file}<br>Date: ${date}<br>Harm score: ${harm}`;
+        }
+
+        function renderHeatMap(elementId, points, mode) {
+            const map = createBaseMap(elementId);
+            const cleanPoints = points.filter(validPoint);
+            if (!cleanPoints.length) {
+                map.setView([-25.2744, 133.7751], 4);
+                return;
+            }
+
+            const maxHarm = Math.max(...cleanPoints.map(point => Number(point.CssWeight || 1)), 1);
+            const heat = cleanPoints.map(point => {
+                const intensity = mode === 'harm'
+                    ? Math.max(.08, Number(point.CssWeight || 1) / maxHarm)
+                    : 1;
+                return [Number(point.Lat), Number(point.Lng), intensity];
+            });
+
+            L.heatLayer(heat, {
+                radius: mode === 'harm' ? 29 : 25,
+                blur: 18,
+                minOpacity: .32,
+                gradient: mode === 'harm'
+                    ? { .20: '#fef3c7', .48: '#f97316', .78: '#dc2626', 1: '#7f1d1d' }
+                    : { .20: '#dbeafe', .50: '#60a5fa', .80: '#2563eb', 1: '#1e3a8a' }
+            }).addTo(map);
+
+            cleanPoints.slice(0, 180).forEach(point => {
+                L.circleMarker([Number(point.Lat), Number(point.Lng)], {
+                    radius: mode === 'harm' ? Math.min(10, 4 + Number(point.CssWeight || 0) / 180) : 5,
+                    color: mode === 'harm' ? '#b42318' : '#1d4ed8',
+                    weight: 1,
+                    fillColor: mode === 'harm' ? '#f97316' : '#60a5fa',
+                    fillOpacity: .55
+                }).bindPopup(popupHtml(point)).addTo(map);
+            });
+
+            map.fitBounds(L.latLngBounds(cleanPoints.map(point => [Number(point.Lat), Number(point.Lng)])), { padding: [18, 18] });
+        }
+
+        renderHeatMap('crimeCountMap', crimeMapPoints, 'crime');
+        renderHeatMap('harmWeightMap', harmMapPoints, 'harm');
+    </script>
+}

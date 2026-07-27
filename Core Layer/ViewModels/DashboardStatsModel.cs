@@ -37,6 +37,9 @@
 
         public List<MapPointModel> MapPoints { get; set; } = new();
         public List<RecentIncidentModel> RecentIncidents { get; set; } = new();
+        public DashboardFilterModel Filters { get; set; } = new();
+        public DashboardFilterOptions FilterOptions { get; set; } = new();
+        public bool IsFiltered => Filters.HasAnyValue;
     }
 
 
@@ -76,5 +79,34 @@
         public string CrimeDateTime { get; set; } = string.Empty;
         public int CssWeight { get; set; }
         public string SeverityLevel { get; set; } = string.Empty;
+    }
+
+    public class DashboardFilterModel
+    {
+        public string? Search { get; set; }
+        public string? CrimeType { get; set; }
+        public string? Location { get; set; }
+        public int? Year { get; set; }
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+        public DateTime? CrimeDateFrom { get; set; }
+        public DateTime? CrimeDateTo { get; set; }
+
+        public bool HasAnyValue =>
+            !string.IsNullOrWhiteSpace(Search)
+            || !string.IsNullOrWhiteSpace(CrimeType)
+            || !string.IsNullOrWhiteSpace(Location)
+            || Year.HasValue
+            || DateFrom.HasValue
+            || DateTo.HasValue
+            || CrimeDateFrom.HasValue
+            || CrimeDateTo.HasValue;
+    }
+
+    public class DashboardFilterOptions
+    {
+        public List<string> CrimeTypes { get; set; } = new();
+        public List<string> Locations { get; set; } = new();
+        public List<int> Years { get; set; } = new();
     }
 }

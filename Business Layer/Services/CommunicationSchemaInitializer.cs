@@ -8,6 +8,17 @@ public static class CommunicationSchemaInitializer
     public static async Task EnsureCommunicationTablesAsync(AnalysisDbContext db)
     {
         await db.Database.ExecuteSqlRawAsync("""
+IF OBJECT_ID(N'[CrimeReports]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'CrimeReports', N'Jurisdiction') IS NULL
+        ALTER TABLE [CrimeReports] ADD [Jurisdiction] nvarchar(100) NULL;
+
+    IF COL_LENGTH(N'CrimeReports', N'DataSource') IS NULL
+        ALTER TABLE [CrimeReports] ADD [DataSource] nvarchar(120) NULL;
+END
+""");
+
+        await db.Database.ExecuteSqlRawAsync("""
 IF OBJECT_ID(N'[PasswordResetOtps]', N'U') IS NULL
 BEGIN
     CREATE TABLE [PasswordResetOtps](
@@ -89,6 +100,21 @@ IF OBJECT_ID(N'[CrimeReports]', N'U') IS NOT NULL
 BEGIN
     UPDATE [CrimeReports]
     SET
+        [Jurisdiction] = COALESCE(
+            NULLIF([Jurisdiction], N''),
+            CASE
+                WHEN [Neighborhood] LIKE N'Community Area %' THEN N'Chicago, IL, USA'
+                ELSE N'Cambridge, MA, USA'
+            END),
+        [DataSource] = COALESCE(
+            NULLIF([DataSource], N''),
+            CASE
+                WHEN [Neighborhood] LIKE N'Community Area %' THEN N'data.cityofchicago.org'
+                ELSE N'Cambridge historical dataset'
+            END);
+
+    UPDATE [CrimeReports]
+    SET
         [ReportYear] = COALESCE([ReportYear], YEAR([DateOfReport])),
         [ReportMonth] = COALESCE([ReportMonth], MONTH([DateOfReport])),
         [ReportDayOfWeek] = COALESCE([ReportDayOfWeek], DATEPART(WEEKDAY, [DateOfReport]) - 1),
@@ -118,6 +144,11 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_Neighborhood_CrimeType' AND object_id = OBJECT_ID(N'[CrimeReports]'))
         CREATE INDEX [IX_CrimeReports_Neighborhood_CrimeType]
             ON [CrimeReports]([Neighborhood], [CrimeType]);
+
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_CrimeReports_Jurisdiction_DateOfReport' AND object_id = OBJECT_ID(N'[CrimeReports]'))
+        CREATE INDEX [IX_CrimeReports_Jurisdiction_DateOfReport]
+            ON [CrimeReports]([Jurisdiction], [DateOfReport])
+            INCLUDE([CrimeType], [DataSource]);
 END
 
 IF OBJECT_ID(N'[UserNotifications]', N'U') IS NOT NULL
