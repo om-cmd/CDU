@@ -266,6 +266,7 @@ public class CommunicationService : ICommunicationService
                 NotificationId = x.UserNotificationId,
                 Title = x.Notification!.Title,
                 Message = x.Notification.Message,
+                ActionUrl = x.Notification.ActionUrl,
                 SentBy = x.Notification.CreatedByEmail,
                 SentAtUtc = x.Notification.CreatedAtUtc,
                 IsRead = x.ReadAtUtc != null
@@ -273,13 +274,28 @@ public class CommunicationService : ICommunicationService
             .ToListAsync();
     }
 
-    public async Task CreateAuditNotificationAsync(string title, string message, int actorUserId, string actorEmail, IReadOnlyCollection<int>? recipientUserIds = null)
+    public async Task CreateAuditNotificationAsync(
+        string title,
+        string message,
+        int actorUserId,
+        string actorEmail,
+        IReadOnlyCollection<int>? recipientUserIds = null,
+        string? actionUrl = null)
     {
+        if (recipientUserIds is { Count: 0 })
+        {
+            _logger.LogWarning(
+                "ChangeType=EntityChange NotificationSkipped=True Reason=NoRecipients Actor={ActorEmail} Title={Title}",
+                actorEmail,
+                title);
+            return;
+        }
+
         var recipientsQuery = _unitOfWork.Users
             .AsNoTracking()
-            .Where(x => !x.Deleted && x.IsActive);
+            .Where(x => !x.Deleted && x.IsActive && x.ApprovalStatus == Domain_Layer.DbModels.Enum.AccountApprovalStatus.Approved);
 
-        if (recipientUserIds is { Count: > 0 })
+        if (recipientUserIds != null)
             recipientsQuery = recipientsQuery.Where(x => recipientUserIds.Contains(x.UserAccountId));
 
         var recipients = await recipientsQuery
@@ -296,8 +312,9 @@ public class CommunicationService : ICommunicationService
         {
             Title = title,
             Message = message,
+            ActionUrl = string.IsNullOrWhiteSpace(actionUrl) ? null : actionUrl[..Math.Min(500, actionUrl.Length)],
             CompanyName = "Crime Analysis",
-            SendToAll = recipientUserIds == null || recipientUserIds.Count == 0,
+            SendToAll = recipientUserIds == null,
             CreatedByUserId = actorUserId,
             CreatedByEmail = string.IsNullOrWhiteSpace(actorEmail) ? "system" : actorEmail,
             CreatedAtUtc = DateTime.UtcNow,

@@ -107,6 +107,7 @@ public class NotificationMenuItemDto
     public long NotificationId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string? ActionUrl { get; set; }
     public string SentBy { get; set; } = string.Empty;
     public DateTime SentAtUtc { get; set; }
     public bool IsRead { get; set; }

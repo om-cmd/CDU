@@ -84,8 +84,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AnalysisDbContext>();
-    await DbSeeder.SeedSuperAdminAsync(dbContext);
+    await dbContext.Database.EnsureCreatedAsync();
     await CommunicationSchemaInitializer.EnsureCommunicationTablesAsync(dbContext);
+    await DbSeeder.SeedSuperAdminAsync(dbContext);
     PermissionGenerators.GetPermission(dbContext);
 }
 

@@ -10,6 +10,10 @@
     </div>
     <div class="card-body">
         <p style="white-space:pre-wrap">@Model.Notification?.Message</p>
+        @if (!string.IsNullOrWhiteSpace(Model.Notification?.ActionUrl))
+        {
+            <a class="btn btn-primary" href="@Model.Notification.ActionUrl">Review registration</a>
+        }
         <a class="btn btn-outline-secondary" asp-action="Notifications">Back to notifications</a>
     </div>
 </div>

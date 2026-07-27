@@ -100,6 +100,7 @@ public class CommunicationController : Controller
                 NotificationId = x.UserNotificationId,
                 Title = x.Notification!.Title,
                 Message = x.Notification.Message,
+                ActionUrl = x.Notification.ActionUrl,
                 SentBy = x.Notification.CreatedByEmail,
                 SentAtUtc = x.Notification.CreatedAtUtc,
                 ReadAtUtc = x.ReadAtUtc
@@ -162,6 +163,7 @@ public class NotificationInboxItem
     public long NotificationId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
+    public string? ActionUrl { get; set; }
     public string SentBy { get; set; } = string.Empty;
     public DateTime SentAtUtc { get; set; }
     public DateTime? ReadAtUtc { get; set; }

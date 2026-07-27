@@ -25,7 +25,7 @@
 
     .auth-card {
         width: 100%;
-        max-width: 480px;
+        max-width: 760px;
         background: #fff;
         border-radius: 16px;
         box-shadow: 0 8px 40px rgba(37, 99, 235, 0.12);
@@ -135,11 +135,11 @@
     <div class="auth-card">
         <div class="auth-logo"><i class="bi bi-person-plus-fill"></i></div>
         <h1 class="auth-title">Create your account</h1>
-        <p class="auth-sub">Join CDU — it's free to get started</p>
+        <p class="auth-sub">Submit your details for administrator identity verification</p>
 
         <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
 
-        <form asp-action="Register" asp-controller="Authentication" method="post">
+        <form asp-action="Register" asp-controller="Authentication" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
 
             <div class="mb-3">
@@ -154,6 +154,82 @@
                 <input asp-for="Email" class="form-control" placeholder="jane@example.com"
                        autocomplete="email" />
                 <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Contact" class="form-label">Phone number</label>
+                    <input asp-for="Contact" class="form-control" autocomplete="tel" />
+                    <span asp-validation-for="Contact" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="DateOfBirth" class="form-label">Date of birth</label>
+                    <input asp-for="DateOfBirth" type="date" class="form-control" />
+                    <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Gender" class="form-label">Gender</label>
+                    <select asp-for="Gender" class="form-control">
+                        <option value="">Select</option>
+                        <option value="1">Male</option>
+                        <option value="2">Female</option>
+                        <option value="3">Non-binary</option>
+                        <option value="4">Prefer not to say</option>
+                    </select>
+                    <span asp-validation-for="Gender" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Department" class="form-label">Department or organisation (optional)</label>
+                    <input asp-for="Department" class="form-control" />
+                    <span asp-validation-for="Department" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Address" class="form-label">Street address</label>
+                <input asp-for="Address" class="form-control" autocomplete="street-address" />
+                <span asp-validation-for="Address" class="text-danger small"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="City" class="form-label">City</label>
+                    <input asp-for="City" class="form-control" autocomplete="address-level2" />
+                    <span asp-validation-for="City" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="State" class="form-label">State / province</label>
+                    <input asp-for="State" class="form-control" autocomplete="address-level1" />
+                    <span asp-validation-for="State" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Country" class="form-label">Country</label>
+                    <input asp-for="Country" class="form-control" autocomplete="country-name" />
+                    <span asp-validation-for="Country" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="PostalCode" class="form-label">Postal code</label>
+                    <input asp-for="PostalCode" class="form-control" autocomplete="postal-code" />
+                    <span asp-validation-for="PostalCode" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="ProfilePhoto" class="form-label">Recent profile photo</label>
+                    <input asp-for="ProfilePhoto" type="file" class="form-control" accept=".jpg,.jpeg,.png,image/jpeg,image/png" />
+                    <div class="form-text">JPG or PNG, maximum 5 MB.</div>
+                    <span asp-validation-for="ProfilePhoto" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="IdentityDocument" class="form-label">Government-issued photo ID</label>
+                    <input asp-for="IdentityDocument" type="file" class="form-control" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" />
+                    <div class="form-text">Passport, licence, or ID card; JPG, PNG, or PDF, maximum 10 MB.</div>
+                    <span asp-validation-for="IdentityDocument" class="text-danger small"></span>
+                </div>
             </div>
             <div class="mb-3">
                 <label asp-for="Password" class="form-label">Password</label>
@@ -186,11 +262,12 @@
 
             <p class="small text-muted mb-3">
                 <i class="bi bi-shield-check text-success me-1"></i>
-                Your account will be created as a <span class="badge-info fw-semibold">User</span>.
+                Your request is saved as a disabled <span class="badge-info fw-semibold">User</span> account.
+                Only an Admin or SuperAdmin can see the submitted evidence and activate sign-in.
             </p>
 
             <button type="submit" class="btn-brand mb-3">
-                <i class="bi bi-person-check me-2"></i>Create Account
+                <i class="bi bi-person-check me-2"></i>Submit for verification
             </button>
         </form>
 

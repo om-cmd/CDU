@@ -70,11 +70,34 @@ namespace Domain_Layer.DbModels
 
         public UserType UserType { get; set; }
 
+        public AccountApprovalStatus ApprovalStatus { get; set; } = AccountApprovalStatus.Approved;
+
+        public DateTime? ApprovalRequestedAtUtc { get; set; }
+
+        public DateTime? ReviewedAtUtc { get; set; }
+
+        public int? ReviewedByUserId { get; set; }
+
+        [StringLength(1000)]
+        public string? ReviewNotes { get; set; }
+
         public int? Gender { get; set; }
 
 
         [StringLength(255, ErrorMessage = "Image URL cannot exceed 255 characters.")]
         public string? ImageUrl { get; set; }
+
+        [StringLength(500)]
+        public string? RegistrationPhotoPath { get; set; }
+
+        [StringLength(500)]
+        public string? IdentityDocumentPath { get; set; }
+
+        [StringLength(255)]
+        public string? IdentityDocumentOriginalName { get; set; }
+
+        [StringLength(120)]
+        public string? IdentityDocumentContentType { get; set; }
 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

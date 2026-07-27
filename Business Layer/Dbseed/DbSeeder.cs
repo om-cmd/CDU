@@ -26,6 +26,7 @@ namespace Infrastructure.Data
                     Email = "superadmin@crime.com",
                     Password = password,
                     UserType = UserType.SuperAdmin,
+                    ApprovalStatus = AccountApprovalStatus.Approved,
                     IsActive = true,
                     EmailConfirmedStatus = true,
                     IsValidated = true,

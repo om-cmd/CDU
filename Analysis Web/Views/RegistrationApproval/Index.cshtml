@@ -1,0 +1,62 @@
+@model List<Core_Layer.ViewModels.RegistrationApprovalListItemDto>
+@using Domain_Layer.DbModels.Enum
+@{
+    ViewData["Title"] = "Registration Approvals";
+}
+
+<div class="card">
+    <div class="card-header card-header-primary">
+        <h4 class="card-title">Registration approvals</h4>
+        <p class="card-category">Only Admin and SuperAdmin accounts can view and verify these requests.</p>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-danger">@error</div>
+        }
+        @if (!Model.Any())
+        {
+            <p class="text-muted mb-0">No registration requests have been submitted.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-items-center">
+                    <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Phone</th>
+                            <th>Country</th>
+                            <th>Submitted</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model)
+                    {
+                        var badge = item.ApprovalStatus == AccountApprovalStatus.Pending
+                            ? "badge-warning"
+                            : item.ApprovalStatus == AccountApprovalStatus.Approved ? "badge-success" : "badge-danger";
+                        <tr>
+                            <td>
+                                <strong>@item.FullName</strong>
+                                <div class="small text-muted">@item.Email</div>
+                            </td>
+                            <td>@item.Contact</td>
+                            <td>@item.Country</td>
+                            <td>@item.RequestedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td><span class="badge @badge">@item.ApprovalStatus</span></td>
+                            <td class="text-right">
+                                <a class="btn btn-sm btn-primary"
+                                   asp-action="Details"
+                                   asp-route-id="@item.UserAccountId">Review</a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

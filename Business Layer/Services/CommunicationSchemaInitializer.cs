@@ -16,6 +16,41 @@ BEGIN
     IF COL_LENGTH(N'CrimeReports', N'DataSource') IS NULL
         ALTER TABLE [CrimeReports] ADD [DataSource] nvarchar(120) NULL;
 END
+
+IF OBJECT_ID(N'[ApplicationUsers]', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'ApplicationUsers', N'ApprovalStatus') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [ApprovalStatus] int NOT NULL
+            CONSTRAINT [DF_ApplicationUsers_ApprovalStatus] DEFAULT (1) WITH VALUES;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'ApprovalRequestedAtUtc') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [ApprovalRequestedAtUtc] datetime2 NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'ReviewedAtUtc') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [ReviewedAtUtc] datetime2 NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'ReviewedByUserId') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [ReviewedByUserId] int NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'ReviewNotes') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [ReviewNotes] nvarchar(1000) NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'RegistrationPhotoPath') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [RegistrationPhotoPath] nvarchar(500) NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'IdentityDocumentPath') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [IdentityDocumentPath] nvarchar(500) NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'IdentityDocumentOriginalName') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [IdentityDocumentOriginalName] nvarchar(255) NULL;
+
+    IF COL_LENGTH(N'ApplicationUsers', N'IdentityDocumentContentType') IS NULL
+        ALTER TABLE [ApplicationUsers] ADD [IdentityDocumentContentType] nvarchar(120) NULL;
+END
+
+IF OBJECT_ID(N'[UserNotifications]', N'U') IS NOT NULL
+   AND COL_LENGTH(N'UserNotifications', N'ActionUrl') IS NULL
+    ALTER TABLE [UserNotifications] ADD [ActionUrl] nvarchar(500) NULL;
 """);
 
         await db.Database.ExecuteSqlRawAsync("""
@@ -72,6 +107,7 @@ BEGIN
         [UserNotificationId] bigint IDENTITY(1,1) NOT NULL PRIMARY KEY,
         [Title] nvarchar(180) NOT NULL,
         [Message] nvarchar(max) NOT NULL,
+        [ActionUrl] nvarchar(500) NULL,
         [CompanyName] nvarchar(120) NOT NULL,
         [SendToAll] bit NOT NULL,
         [CreatedByUserId] int NOT NULL,
@@ -156,6 +192,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_UserNotifications_CreatedAtUtc_IsDeleted' AND object_id = OBJECT_ID(N'[UserNotifications]'))
         CREATE INDEX [IX_UserNotifications_CreatedAtUtc_IsDeleted]
             ON [UserNotifications]([CreatedAtUtc] DESC, [IsDeleted]);
+END
+
+IF OBJECT_ID(N'[ApplicationUsers]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'IX_ApplicationUsers_ApprovalStatus_ApprovalRequestedAtUtc' AND object_id = OBJECT_ID(N'[ApplicationUsers]'))
+        CREATE INDEX [IX_ApplicationUsers_ApprovalStatus_ApprovalRequestedAtUtc]
+            ON [ApplicationUsers]([ApprovalStatus], [ApprovalRequestedAtUtc] DESC)
+            INCLUDE([UserType], [IsActive], [Deleted]);
 END
 
 IF OBJECT_ID(N'[UserNotificationRecipients]', N'U') IS NOT NULL

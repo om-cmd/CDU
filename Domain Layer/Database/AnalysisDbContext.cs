@@ -47,6 +47,9 @@ namespace Domain_Layer.Database
                 .WithMany(x => x.Recipients)
                 .HasForeignKey(x => x.UserNotificationId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasIndex(x => new { x.ApprovalStatus, x.ApprovalRequestedAtUtc });
         }
 
     }

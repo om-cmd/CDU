@@ -13,6 +13,9 @@ public class UserNotification
     [Required]
     public string Message { get; set; } = string.Empty;
 
+    [MaxLength(500)]
+    public string? ActionUrl { get; set; }
+
     [MaxLength(120)]
     public string CompanyName { get; set; } = "Crime Analysis";
 

@@ -252,6 +252,12 @@
                     </li>
                     @if (User.IsInRole("SuperAdmin") || User.IsInRole("Admin"))
                     {
+                        <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "RegistrationApproval" ? "active" : "")">
+                            <a class="nav-link" asp-controller="RegistrationApproval" asp-action="Index">
+                                <i class="material-icons">how_to_reg</i>
+                                <p>Registration Approvals</p>
+                            </a>
+                        </li>
                         <li class="nav-item @(ViewContext.RouteData.Values["controller"]?.ToString() == "Communication" && ViewContext.RouteData.Values["action"]?.ToString() == "GlobalEmail" ? "active" : "")">
                             <a class="nav-link" asp-controller="Communication" asp-action="GlobalEmail">
                                 <i class="material-icons">outgoing_mail</i>

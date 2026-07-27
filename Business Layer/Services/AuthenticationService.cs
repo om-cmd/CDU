@@ -5,7 +5,9 @@ using Domain_Layer.DbModels;
 using Domain_Layer.DbModels.Enum;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Logging;
 using IAuthenticationService = Analysis_Web.Services.IAuthenticationService;
 
 namespace Business_Layer.Services;
@@ -13,175 +15,101 @@ namespace Business_Layer.Services;
 public class AuthenticationService : IAuthenticationService
 {
     private readonly IUnitOfWork _unitOfWork;
-    public AuthenticationService(IUnitOfWork unitOfWork)
+    private readonly ILogger<AuthenticationService> _logger;
+
+    public AuthenticationService(IUnitOfWork unitOfWork, ILogger<AuthenticationService> logger)
     {
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
-    public async Task<(string Message, bool Success, string Status)> RegisterUserAsync(RegisterDto model)
+    public async Task<(string Message, bool Success, string Status, int? UserId)> RegisterUserAsync(
+        RegisterDto model,
+        RegistrationEvidenceDto evidence)
     {
         try
         {
             var validate = await ValidateUser(model);
             if (!validate.Success)
             {
-                return (validate.Message, validate.Success, validate.Status);
+                return (validate.Message, false, validate.Status, null);
             }
 
-            if (model.UserType == 0)
+            var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+            var user = new ApplicationUser
             {
-                model.UserType = UserType.User;
-            }
-            model.Password = StaticMethods.HashPassword(model.Password).Item2;
-            if (model.UserType == UserType.User)
+                FullName = model.FullName.Trim(),
+                UserName = normalizedEmail,
+                Email = normalizedEmail,
+                Password = StaticMethods.HashPassword(model.Password).Item2,
+                Contact = model.Contact?.Trim(),
+                Department = model.Department?.Trim(),
+                DateOfBirth = model.DateOfBirth,
+                Address = model.Address?.Trim(),
+                City = model.City?.Trim(),
+                State = model.State?.Trim(),
+                Country = model.Country?.Trim(),
+                PostalCode = model.PostalCode?.Trim(),
+                Gender = model.Gender,
+                UserType = UserType.User,
+                IsActive = false,
+                IsValidated = false,
+                PhoneValidated = false,
+                EmailConfirmedStatus = false,
+                ApprovalStatus = AccountApprovalStatus.Pending,
+                ApprovalRequestedAtUtc = DateTime.UtcNow,
+                RegistrationPhotoPath = evidence.ProfilePhotoPath,
+                IdentityDocumentPath = evidence.IdentityDocumentPath,
+                IdentityDocumentOriginalName = evidence.IdentityDocumentOriginalName,
+                IdentityDocumentContentType = evidence.IdentityDocumentContentType,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await using var transaction = await _unitOfWork._db.Database.BeginTransactionAsync();
+            try
             {
-                var transaction = _unitOfWork._db.Database.BeginTransaction();
-                try
-                {
- var users = new ApplicationUser
-                {
-                    FullName = model.FullName,
-                    UserName = model.Email,
-                    Email = model.Email,
-                    Password = model.Password,
-                    Contact = model.Contact,
-                    Department = model.Department,
-                    DateOfBirth = model.DateOfBirth,
-                    Address = model.Address,
-                    City = model.City,
-                    State = model.State,
-                    Country = model.Country,
-                    PostalCode = model.PostalCode,
-                    Gender = model.Gender,
-                    ImageUrl = model.ImageUrl,
-                    UserType = model.UserType,
-                    IsActive = true,
-                    IsValidated = false,
-                    PhoneValidated = false,
-                    EmailConfirmedStatus = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _unitOfWork.Users.Add(users);
+                _unitOfWork.Users.Add(user);
                 await _unitOfWork.SaveChangesAsync();
-
-                if (_unitOfWork._db.Roles.Any(x => x.RoleName.ToLower() == "user"))
-                {
-                    var role = _unitOfWork._db.Roles.FirstOrDefault(x => x.RoleName.ToLower() == "user");
-                    _unitOfWork._db.UserRoles.Add(new UserRole()
-                    {
-                        CreatedBy =  "System",
-                        RoleId =  role.RoleId,
-                        UserAccountId = users.UserAccountId,
-                        CreatedDate =  DateTime.UtcNow
-                    });
-                    await _unitOfWork.SaveChangesAsync();
-                }
-                else
-                {
-                    var role = new Role
-                    {
-                        RoleName = "User",
-                        RoleDescription = "For Normal User!!!",
-                        CreatedBy = "System",
-                        CreatedOn = DateTime.UtcNow,
-                        ModifiedBy = "System",
-                        ModifiedOn = DateTime.UtcNow,
-                        Status = "Active"
-                    };
-                    _unitOfWork._db.Roles.Add(role);
-                    await _unitOfWork.SaveChangesAsync();
-                    _unitOfWork._db.UserRoles.Add(new UserRole()
-                    {
-                        CreatedBy =  "System",
-                        RoleId =  role.RoleId,
-                        UserAccountId = users.UserAccountId,
-                        CreatedDate =  DateTime.UtcNow
-                    });
-                    await _unitOfWork.SaveChangesAsync();
-                }
-                transaction.Commit();
-                return ("User Resgitered Successfully!!",true, "00");
-                }
-                catch (Exception ex)
-                {
-                    transaction.Rollback();
-                    return ("Unable to add user!!",false, "1");
-
-                }
-               
+                await transaction.CommitAsync();
+                return (
+                    "Registration submitted. An administrator must verify and approve the account before you can sign in.",
+                    true,
+                    "PENDING",
+                    user.UserAccountId);
             }
-            else
+            catch
             {
-                var users = new ApplicationUser
-                {
-                    FullName = model.FullName,
-                    UserName = model.Email,
-                    Email = model.Email,
-                    Password = model.Password,
-                    Contact = model.Contact,
-                    Department = model.Department,
-                    DateOfBirth = model.DateOfBirth,
-                    Address = model.Address,
-                    City = model.City,
-                    State = model.State,
-                    Country = model.Country,
-                    PostalCode = model.PostalCode,
-                    Gender = model.Gender,
-                    ImageUrl = model.ImageUrl,
-                    UserType = model.UserType,
-                    IsActive = true,
-                    IsValidated = false,
-                    PhoneValidated = false,
-                    EmailConfirmedStatus = false,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _unitOfWork.Users.Add(users);
-                await _unitOfWork.SaveChangesAsync();
-            
-                return ("User Resgitered Successfully!!",true, "00");
+                await transaction.RollbackAsync();
+                throw;
             }
-          
         }
         catch (Exception ex)
         {
-
-            return (ex.Message.ToString(),false, "1");
+            _logger.LogError(ex, "Registration failed for {Email}", model.Email);
+            return ("Unable to submit the registration request. Please try again.", false, "1", null);
         }
-        
     }
 
     public async Task<(bool Success, string Message, string Status)> ValidateUser(RegisterDto user)
     {
         try
         {
-            var users = _unitOfWork.Users.ToList();
-            
-            if (!users.Any())
-            {
-                if (!users.Any(x => x.Email == user.Email))
-                {
-                    return (false, "Email Already Exists!!!", "1");
-                }                
-                if (!users.Any(x => x.Contact == user.Contact))
-                {
-                    return (false, "Contact Already Exists!!!", "1");
-                }
-                if (!users.Any(x => x.UserName == user.UserName))
-                {
-                    return (false, "UserName is Already Taken!!!", "1");
-                }
-                return (true, "ValidateSucessFully", "00");
-            }
-            return (true, "ValidateSucessFully", "00");
+            var normalizedEmail = user.Email.Trim().ToLowerInvariant();
+            if (await _unitOfWork.Users.AnyAsync(x => !x.Deleted && x.Email.ToLower() == normalizedEmail))
+                return (false, "An account or pending registration already exists for this email address.", "DUPLICATE_EMAIL");
 
+            var normalizedContact = user.Contact?.Trim();
+            if (!string.IsNullOrWhiteSpace(normalizedContact)
+                && await _unitOfWork.Users.AnyAsync(x => !x.Deleted && x.Contact == normalizedContact))
+                return (false, "An account or pending registration already exists for this phone number.", "DUPLICATE_CONTACT");
+
+            return (true, "Registration details are available.", "00");
         }
         catch (Exception ex)
         {
-            
+            _logger.LogError(ex, "Registration validation failed for {Email}", user.Email);
             return (false, ex.Message, "1");
-            
         }
-
     }
 
     public async Task<(string Message, bool Success, string Status, LoginResponseDto)> Login(LoginDto model)
@@ -192,13 +120,26 @@ public class AuthenticationService : IAuthenticationService
                 return ("PASSWORD IS REQUIRED!!", false, "1",null);
             if (string.IsNullOrEmpty(model.Email))
                 return ("EMAIL IS REQUIRED!!", false, "1",null);
-            if(!_unitOfWork.Users.Any(x => x.Email == model.Email)||_unitOfWork.Users.Any(x => x.UserName == model.UserName))
-                return ("NO USER FOUND PLESE REGISTER!!!",false,"404",null);
-            var user = _unitOfWork.Users.FirstOrDefault(x => x.Email == model.Email || x.UserName == model.UserName);
+            var login = model.Email.Trim().ToLowerInvariant();
+            var user = await _unitOfWork.Users.FirstOrDefaultAsync(
+                x => !x.Deleted && (x.Email.ToLower() == login || x.UserName.ToLower() == login));
+            if (user == null)
+                return ("No account was found. Please register first.", false, "404", null);
+
             if (!StaticMethods.VerifyPassword(model.Password, user.Password))
             {
-                return ("USERNAME OR PASSWORD MISMATCHED!!!",false, "1",null);                
+                return ("Email or password is incorrect.", false, "1", null);
             }
+
+            if (user.ApprovalStatus == AccountApprovalStatus.Pending)
+                return ("Your registration is awaiting administrator verification. You will receive an email after it is reviewed.", false, "PENDING", null);
+
+            if (user.ApprovalStatus == AccountApprovalStatus.Rejected)
+                return ("Your registration was not approved. Please contact an administrator if you need more information.", false, "REJECTED", null);
+
+            if (!user.IsActive)
+                return ("This account is not active. Please contact an administrator.", false, "INACTIVE", null);
+
              var tokens = new LoginResponseDto()
              {
                  EmailAddress = user.Email,
@@ -230,6 +171,8 @@ public class AuthenticationService : IAuthenticationService
                  CookieAuthenticationDefaults.AuthenticationScheme,
                  new ClaimsPrincipal(identity),
                  auth);
+             user.LastLoginAt = DateTime.UtcNow;
+             await _unitOfWork.SaveChangesAsync();
              LoginResponseDto dto = new LoginResponseDto()
              {
                  EmailAddress = user.Email,
@@ -242,7 +185,8 @@ public class AuthenticationService : IAuthenticationService
         }
         catch (Exception ex)
         {
-            return (ex.Message.ToString(),false, "1",null);   
+            _logger.LogError(ex, "Login failed for {Email}", model.Email);
+            return ("Unable to sign in right now. Please try again.", false, "1", null);
         }
     }
 
