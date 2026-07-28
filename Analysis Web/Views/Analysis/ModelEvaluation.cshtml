@@ -135,6 +135,8 @@
         const evaluationToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         const retrainButton = document.getElementById('retrainButton');
         const evaluationCharts = {};
+        let evaluationRequestActive = false;
+        let evaluationRetryTimer = null;
 
         Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
         Chart.defaults.color = '#334155';
@@ -203,6 +205,14 @@
         }
 
         async function loadEvaluation(forceRetrain = false) {
+            if (evaluationRequestActive) return;
+            evaluationRequestActive = true;
+            if (evaluationRetryTimer) {
+                clearTimeout(evaluationRetryTimer);
+                evaluationRetryTimer = null;
+            }
+
+            let waitingForActiveRun = false;
             const status = document.getElementById('evaluationStatus');
             status.classList.remove('error');
             status.textContent = forceRetrain
@@ -224,6 +234,16 @@
                 } catch {
                     data = {};
                 }
+
+                if (response.status === 409 && data.code === 'ANALYSIS_RUNNING') {
+                    waitingForActiveRun = true;
+                    const retryAfterSeconds = Math.max(2, Number(data.retryAfterSeconds || 5));
+                    const started = data.startedAtUtc ? new Date(data.startedAtUtc).toLocaleString() : 'recently';
+                    status.textContent = `${data.stage || 'Model evaluation'} is already running (started ${started}). This page will check again automatically in ${retryAfterSeconds} seconds.`;
+                    evaluationRetryTimer = setTimeout(() => loadEvaluation(false), retryAfterSeconds * 1000);
+                    return;
+                }
+
                 if (!response.ok) throw new Error(data.message || 'The analysis API could not complete the evaluation.');
 
                 const result = data.pythonResult;
@@ -259,8 +279,9 @@
                 status.classList.add('error');
                 status.textContent = error.message || 'The evaluation could not be loaded. You can safely retry.';
             } finally {
-                retrainButton.disabled = false;
-                retrainButton.textContent = 'Retrain on latest data';
+                evaluationRequestActive = false;
+                retrainButton.disabled = waitingForActiveRun;
+                retrainButton.textContent = waitingForActiveRun ? 'Training in progress...' : 'Retrain on latest data';
             }
         }
 

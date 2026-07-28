@@ -21,20 +21,24 @@ public class AnalysisController : Controller
     private static readonly SemaphoreSlim AnalysisRunGate = new(1, 1);
     private static readonly object AnalysisCacheLock = new();
     private static CachedAnalysisRun? _cachedAnalysisRun;
+    private static ActiveAnalysisRun? _activeAnalysisRun;
     private readonly ICrimeReportInterface _crimeReports;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHostApplicationLifetime _applicationLifetime;
     private readonly ILogger<AnalysisController> _logger;
 
     public AnalysisController(
         ICrimeReportInterface crimeReports,
         IUnitOfWork unitOfWork,
         IHttpClientFactory httpClientFactory,
+        IHostApplicationLifetime applicationLifetime,
         ILogger<AnalysisController> logger)
     {
         _crimeReports = crimeReports;
         _unitOfWork = unitOfWork;
         _httpClientFactory = httpClientFactory;
+        _applicationLifetime = applicationLifetime;
         _logger = logger;
     }
 
@@ -70,9 +74,7 @@ public class AnalysisController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Run(
-        [FromBody] DotNetCrimeAnalysisRequest request,
-        CancellationToken cancellationToken)
+    public async Task<IActionResult> Run([FromBody] DotNetCrimeAnalysisRequest request)
     {
         Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
         Response.Headers.Pragma = "no-cache";
@@ -83,25 +85,60 @@ public class AnalysisController : Controller
 
         var crimeType = TryParseCrimeType(request.CrimeType);
         var payloadRecords = new List<PythonCrimeReportDto>();
+        var payload = new PythonCrimeAnalysisRequest();
         int totalCount;
         DateTime? dataDateFrom;
         DateTime? dataDateTo;
         DateTime? latestImportedAtUtc;
         bool rowsTruncated;
 
+        if (!AnalysisRunGate.Wait(0))
+        {
+            var activeRun = GetActiveAnalysisRun();
+            Response.Headers["Retry-After"] = "5";
+            return Conflict(new
+            {
+                code = "ANALYSIS_RUNNING",
+                message = "A model evaluation is already running. This page will retry automatically; do not start another task.",
+                retryable = true,
+                retryAfterSeconds = 5,
+                startedAtUtc = activeRun?.StartedAtUtc,
+                stage = activeRun?.Stage ?? "Model evaluation in progress"
+            });
+        }
+
+        var runStartedAtUtc = DateTime.UtcNow;
+        SetActiveAnalysisRun(new ActiveAnalysisRun(runStartedAtUtc, "Reading current CrimeReports data"));
+        using var operationTimeout = CancellationTokenSource.CreateLinkedTokenSource(
+            _applicationLifetime.ApplicationStopping);
+        operationTimeout.CancelAfter(TimeSpan.FromMinutes(35));
+        var operationToken = operationTimeout.Token;
+
+        try
+        {
         if (request.IncludeAllRows)
         {
             var query = ApplyAnalysisFilters(
                 _unitOfWork.CrimeReports.AsNoTracking(),
                 request,
                 crimeType);
-            totalCount = await query.CountAsync(cancellationToken);
-            dataDateFrom = await query.MinAsync(r => r.DateOfReport, cancellationToken);
-            dataDateTo = await query.MaxAsync(r => r.DateOfReport, cancellationToken);
-            latestImportedAtUtc = totalCount == 0
-                ? null
-                : await query.MaxAsync(r => (DateTime?)r.ImportedAt, cancellationToken);
+            var snapshot = await query
+                .GroupBy(_ => 1)
+                .Select(group => new
+                {
+                    TotalCount = group.Count(),
+                    DateFrom = group.Min(r => r.DateOfReport),
+                    DateTo = group.Max(r => r.DateOfReport),
+                    LatestImportedAtUtc = group.Max(r => (DateTime?)r.ImportedAt)
+                })
+                .SingleOrDefaultAsync(operationToken);
 
+            totalCount = snapshot?.TotalCount ?? 0;
+            dataDateFrom = snapshot?.DateFrom;
+            dataDateTo = snapshot?.DateTo;
+            latestImportedAtUtc = snapshot?.LatestImportedAtUtc;
+
+            SetActiveAnalysisRun(new ActiveAnalysisRun(runStartedAtUtc, "Preparing weighted daily aggregates"));
             var aggregates = await query
                 .Where(r => r.DateOfReport.HasValue)
                 .GroupBy(r => new
@@ -120,7 +157,7 @@ public class AnalysisController : Controller
                     EventCount = group.Count()
                 })
                 .OrderBy(row => row.IncidentDate)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(operationToken);
 
             payloadRecords = aggregates.Select((row, index) => new PythonCrimeReportDto
             {
@@ -145,7 +182,8 @@ public class AnalysisController : Controller
                 year: request.Year,
                 neighborhood: request.Neighborhood,
                 sortBy: "dateOfReport",
-                ascending: false);
+                ascending: false,
+                cancellationToken: operationToken);
 
             var reportList = reports.ToList();
             totalCount = matchingCount;
@@ -172,7 +210,7 @@ public class AnalysisController : Controller
             }).ToList();
         }
 
-        var payload = new PythonCrimeAnalysisRequest
+        payload = new PythonCrimeAnalysisRequest
         {
             Frequency = request.Frequency,
             ForecastPeriods = request.ForecastPeriods,
@@ -205,64 +243,47 @@ public class AnalysisController : Controller
             dataDateTo?.Ticks ?? 0,
             latestImportedAtUtc?.Ticks ?? 0);
 
-        try
-        {
             if (!request.ForceRetrain &&
                 TryGetCachedAnalysis(cacheKey, out var cachedResult, out _))
             {
                 return BuildAnalysisResponse(cachedResult, modelRetrained: false, cachedResult: true);
             }
 
-            var waitStartedAtUtc = DateTime.UtcNow;
-            await AnalysisRunGate.WaitAsync(cancellationToken);
-            try
+            SetActiveAnalysisRun(new ActiveAnalysisRun(runStartedAtUtc, "Training and evaluating candidate models"));
+            var client = _httpClientFactory.CreateClient("CrimeAnalysisPython");
+            using var analysisTimeout = CancellationTokenSource.CreateLinkedTokenSource(operationToken);
+            analysisTimeout.CancelAfter(TimeSpan.FromMinutes(30));
+            var response = await client.PostAsJsonAsync(
+                "/api/v1/crime/analyze",
+                payload,
+                analysisTimeout.Token);
+            var body = await response.Content.ReadAsStringAsync(analysisTimeout.Token);
+
+            if (!response.IsSuccessStatusCode)
             {
-                // A page refresh may have waited behind the run that just completed.
-                // Reuse it even when the original request explicitly started retraining.
-                if (TryGetCachedAnalysis(cacheKey, out cachedResult, out var cachedAtUtc) &&
-                    (!request.ForceRetrain || cachedAtUtc >= waitStartedAtUtc))
+                _logger.LogWarning("Python analysis failed with {StatusCode}: {Body}", response.StatusCode, body);
+                return StatusCode((int)response.StatusCode, new
                 {
-                    return BuildAnalysisResponse(cachedResult, modelRetrained: false, cachedResult: true);
-                }
-
-                var client = _httpClientFactory.CreateClient("CrimeAnalysisPython");
-                using var analysisTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(30));
-                var response = await client.PostAsJsonAsync(
-                    "/api/v1/crime/analyze",
-                    payload,
-                    analysisTimeout.Token);
-                var body = await response.Content.ReadAsStringAsync(analysisTimeout.Token);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Python analysis failed with {StatusCode}: {Body}", response.StatusCode, body);
-                    return StatusCode((int)response.StatusCode, new
-                    {
-                        message = "Python analysis API could not complete the evaluation.",
-                        details = body
-                    });
-                }
-
-                using var pythonDocument = JsonDocument.Parse(body);
-                var pythonResult = pythonDocument.RootElement.Clone();
-                lock (AnalysisCacheLock)
-                {
-                    _cachedAnalysisRun = new CachedAnalysisRun(cacheKey, pythonResult, DateTime.UtcNow);
-                }
-
-                return BuildAnalysisResponse(pythonResult, modelRetrained: true, cachedResult: false);
+                    message = "Python analysis API could not complete the evaluation.",
+                    details = body
+                });
             }
-            finally
+
+            using var pythonDocument = JsonDocument.Parse(body);
+            var pythonResult = pythonDocument.RootElement.Clone();
+            lock (AnalysisCacheLock)
             {
-                AnalysisRunGate.Release();
+                _cachedAnalysisRun = new CachedAnalysisRun(cacheKey, pythonResult, DateTime.UtcNow);
             }
+
+            return BuildAnalysisResponse(pythonResult, modelRetrained: true, cachedResult: false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (_applicationLifetime.ApplicationStopping.IsCancellationRequested)
         {
-            _logger.LogInformation("Crime model evaluation request was cancelled because the browser disconnected or refreshed.");
-            return StatusCode(499, new
+            _logger.LogInformation("Crime model evaluation stopped because the application is shutting down.");
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new
             {
-                message = "The previous page request was cancelled. A refreshed page can safely load the latest completed evaluation.",
+                message = "The application is restarting. Reload the page after the server starts.",
                 retryable = true
             });
         }
@@ -271,7 +292,7 @@ public class AnalysisController : Controller
             _logger.LogWarning(ex, "Crime model evaluation exceeded the server-side analysis timeout.");
             return StatusCode(StatusCodes.Status504GatewayTimeout, new
             {
-                message = "Model training is taking longer than the 30-minute safety limit. No database data was changed; try again after checking the Python service.",
+                message = "Database preparation or model training exceeded the server safety limit. No database data was changed; check SQL Server and the Python service, then retry.",
                 retryable = true
             });
         }
@@ -282,6 +303,29 @@ public class AnalysisController : Controller
             {
                 message = "Could not reach Python analysis API. Start the FastAPI project on http://localhost:8001 first."
             });
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Python analysis API returned invalid JSON.");
+            return StatusCode(StatusCodes.Status502BadGateway, new
+            {
+                message = "The Python analysis service returned an invalid response. Check its console log and retry.",
+                retryable = true
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Crime model evaluation failed.");
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = "The model evaluation could not be completed. The failure was recorded; it is safe to retry.",
+                retryable = true
+            });
+        }
+        finally
+        {
+            ClearActiveAnalysisRun();
+            AnalysisRunGate.Release();
         }
 
         IActionResult BuildAnalysisResponse(
@@ -335,10 +379,38 @@ public class AnalysisController : Controller
         return false;
     }
 
+    private static ActiveAnalysisRun? GetActiveAnalysisRun()
+    {
+        lock (AnalysisCacheLock)
+        {
+            return _activeAnalysisRun;
+        }
+    }
+
+    private static void SetActiveAnalysisRun(ActiveAnalysisRun run)
+    {
+        lock (AnalysisCacheLock)
+        {
+            _activeAnalysisRun = run;
+        }
+    }
+
+    private static void ClearActiveAnalysisRun()
+    {
+        lock (AnalysisCacheLock)
+        {
+            _activeAnalysisRun = null;
+        }
+    }
+
     private sealed record CachedAnalysisRun(
         string CacheKey,
         JsonElement PythonResult,
         DateTime CompletedAtUtc);
+
+    private sealed record ActiveAnalysisRun(
+        DateTime StartedAtUtc,
+        string Stage);
 
     private static CrimeType? TryParseCrimeType(string? value)
     {

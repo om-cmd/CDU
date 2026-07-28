@@ -14,7 +14,16 @@ namespace Analysis_Web.Services
             _context = context;
         }
 
-        public async Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(int page, int pageSize,string? search, CrimeType? crimeType, int? year, string? neighborhood,string? sortBy, bool ascending)
+        public async Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(
+            int page,
+            int pageSize,
+            string? search,
+            CrimeType? crimeType,
+            int? year,
+            string? neighborhood,
+            string? sortBy,
+            bool ascending,
+            CancellationToken cancellationToken = default)
         {
             page = Math.Max(page, 1);
             pageSize = Math.Clamp(pageSize, 1, 250000);
@@ -44,7 +53,7 @@ namespace Analysis_Web.Services
                 q = q.Where(r => r.Neighborhood != null && EF.Functions.Like(r.Neighborhood, nv));
             }
 
-            var total = await q.CountAsync();
+            var total = await q.CountAsync(cancellationToken);
 
             q = (sortBy?.ToLower(), ascending) switch
             {
@@ -58,7 +67,10 @@ namespace Analysis_Web.Services
                 (_, false) => q.OrderByDescending(r => r.DateOfReport).ThenByDescending(r => r.CrimeReportId),
             };
 
-            var data = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var data = await q
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
             return (data, total);
         }
 

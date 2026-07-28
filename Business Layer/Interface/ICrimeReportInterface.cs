@@ -7,7 +7,8 @@ namespace Analysis_Web.Services
     {
         Task<(IEnumerable<CrimeReport> Reports, int TotalCount)> GetPagedAsync(
             int page, int pageSize, string? search, CrimeType? crimeType,
-            int? year, string? neighborhood, string? sortBy, bool ascending);
+            int? year, string? neighborhood, string? sortBy, bool ascending,
+            CancellationToken cancellationToken = default);
 
         Task<CrimeReport?> GetByIdAsync(int id);
         Task<CrimeReport> CreateAsync(CrimeReport report);
